@@ -4,38 +4,55 @@ import { useState } from 'react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Label } from "@/components/ui/label"
+import { ChevronDown } from "lucide-react"
 import { 
-  GrindSetting, 
-  MICRONS_PER_CLICK,
-  CLICKS_PER_ROTATION,
-  CLICKS_PER_NUMBER,
+  GrindSetting,
+  GrinderModel,
+  GRINDER_MODELS,
+  DEFAULT_MODEL,
   BREW_METHODS,
-  ZERO_POINT_MICRONS,
   MAX_ADJUSTABLE_MICRONS
 } from '@/types/calculator'
 
 export function Calculator() {
   const [targetMicrons, setTargetMicrons] = useState<number>(500)
+  const [targetMicronsInput, setTargetMicronsInput] = useState<string>('500')
   const [settings, setSettings] = useState<GrindSetting | null>(null)
+  const [selectedModel, setSelectedModel] = useState<GrinderModel>(DEFAULT_MODEL)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [customSettings, setCustomSettings] = useState({
+    numbersPerRotation: DEFAULT_MODEL.numbersPerRotation,
+    clicksPerRotation: DEFAULT_MODEL.clicksPerRotation,
+    clicksPerNumber: DEFAULT_MODEL.clicksPerNumber,
+    mmPerClick: DEFAULT_MODEL.mmPerClick,
+    zeroPointMicrons: DEFAULT_MODEL.zeroPointMicrons
+  })
 
   const calculateSettings = () => {
-    // Calculate how many microns we need to adjust from zero point
-    const adjustmentMicrons = Math.max(0, targetMicrons - ZERO_POINT_MICRONS)
+    // Use either custom settings or model defaults
+    const settings = showAdvanced ? customSettings : selectedModel
+    
+    // Convert mm to microns and calculate adjustment
+    const micronsPerClick = settings.mmPerClick * 1000
+    const adjustmentMicrons = Math.max(0, targetMicrons - settings.zeroPointMicrons)
     
     // Calculate total clicks needed for the adjustment
-    const totalClicks = Math.round(adjustmentMicrons / MICRONS_PER_CLICK)
+    const totalClicks = Math.round(adjustmentMicrons / micronsPerClick)
     
     // Calculate full rotations
-    const rotations = Math.floor(totalClicks / CLICKS_PER_ROTATION)
+    const rotations = Math.floor(totalClicks / settings.clicksPerRotation)
     
     // Calculate remaining clicks
-    const remainingClicks = totalClicks % CLICKS_PER_ROTATION
+    const remainingClicks = totalClicks % settings.clicksPerRotation
     
-    // Calculate numbers (each number is 3 clicks)
-    const numbers = Math.floor(remainingClicks / CLICKS_PER_NUMBER)
+    // Calculate numbers (using clicks per number)
+    const numbers = Math.floor(remainingClicks / settings.clicksPerNumber)
     
-    // Calculate final clicks (after numbers)
-    const clicks = remainingClicks % CLICKS_PER_NUMBER
+    // Calculate final clicks
+    const clicks = remainingClicks % settings.clicksPerNumber
 
     setSettings({
       rotations,
@@ -45,43 +62,78 @@ export function Calculator() {
     })
   }
 
+  const handleModelChange = (modelId: string) => {
+    const model = GRINDER_MODELS.find(m => m.id === modelId) || DEFAULT_MODEL
+    setSelectedModel(model)
+    // Update custom settings to match the new model
+    setCustomSettings({
+      numbersPerRotation: model.numbersPerRotation,
+      clicksPerRotation: model.clicksPerRotation,
+      clicksPerNumber: model.clicksPerNumber,
+      mmPerClick: model.mmPerClick,
+      zeroPointMicrons: model.zeroPointMicrons
+    })
+  }
+
   const handleBrewMethodSelect = (method: typeof BREW_METHODS[0]) => {
-    // Use the middle of the range as the target
     const targetMicrons = Math.round((method.minMicrons + method.maxMicrons) / 2)
     setTargetMicrons(targetMicrons)
+    setTargetMicronsInput(targetMicrons.toString())
     calculateSettings()
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>1Zpresso Q2 Grind Calculator</CardTitle>
+        <CardTitle>1Zpresso Grind Calculator</CardTitle>
         <CardDescription>
-          Calculate grind settings from zero point (approximately {ZERO_POINT_MICRONS} microns).
+          Calculate grind settings from zero point (approximately {selectedModel.zeroPointMicrons} microns).
           Turn counter-clockwise to adjust coarser.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
+          <div className="space-y-2">
+            <Label>Grinder Model</Label>
+            <Select value={selectedModel.id} onValueChange={handleModelChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select grinder model" />
+              </SelectTrigger>
+              <SelectContent>
+                {GRINDER_MODELS.map(model => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name} ({model.adjustmentType})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
-            <label className="text-sm font-medium">Target Grind Size (microns)</label>
+            <Label>Target Grind Size (microns)</Label>
             <Input
               type="number"
-              value={targetMicrons}
-              onChange={(e) => setTargetMicrons(Number(e.target.value))}
-              min={ZERO_POINT_MICRONS}
-              max={ZERO_POINT_MICRONS + MAX_ADJUSTABLE_MICRONS}
+              value={targetMicronsInput}
+              onChange={(e) => setTargetMicronsInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setTargetMicrons(Number(targetMicronsInput))
+                  calculateSettings()
+                }
+              }}
+              min={selectedModel.zeroPointMicrons}
+              max={selectedModel.zeroPointMicrons + MAX_ADJUSTABLE_MICRONS}
               className="mt-1"
             />
-            {targetMicrons < ZERO_POINT_MICRONS && (
+            {targetMicrons < selectedModel.zeroPointMicrons && (
               <p className="text-sm text-red-500 mt-1">
-                Cannot go finer than zero point ({ZERO_POINT_MICRONS} microns)
+                Cannot go finer than zero point ({selectedModel.zeroPointMicrons} microns)
               </p>
             )}
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">Quick Select Brew Method</label>
+            <Label>Quick Select Brew Method</Label>
             <div className="grid grid-cols-2 gap-2">
               {BREW_METHODS.map(method => (
                 <Button 
@@ -96,10 +148,78 @@ export function Calculator() {
             </div>
           </div>
 
+          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                Advanced Settings
+                <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? 'transform rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 mt-4">
+              <div className="grid gap-4">
+                <div>
+                  <Label>Numbers per Rotation</Label>
+                  <Input
+                    type="number"
+                    value={customSettings.numbersPerRotation}
+                    onChange={(e) => setCustomSettings(prev => ({ ...prev, numbersPerRotation: Number(e.target.value) }))}
+                    min={1}
+                    step={1}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Clicks per Rotation</Label>
+                  <Input
+                    type="number"
+                    value={customSettings.clicksPerRotation}
+                    onChange={(e) => setCustomSettings(prev => ({ ...prev, clicksPerRotation: Number(e.target.value) }))}
+                    min={1}
+                    step={1}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Clicks per Number</Label>
+                  <Input
+                    type="number"
+                    value={customSettings.clicksPerNumber}
+                    onChange={(e) => setCustomSettings(prev => ({ ...prev, clicksPerNumber: Number(e.target.value) }))}
+                    min={1}
+                    step={1}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>MM per Click</Label>
+                  <Input
+                    type="number"
+                    value={customSettings.mmPerClick}
+                    onChange={(e) => setCustomSettings(prev => ({ ...prev, mmPerClick: Number(e.target.value) }))}
+                    min={0.001}
+                    step={0.001}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Grinder at Zero Point in Microns</Label>
+                  <Input
+                    type="number"
+                    value={customSettings.zeroPointMicrons}
+                    onChange={(e) => setCustomSettings(prev => ({ ...prev, zeroPointMicrons: Number(e.target.value) }))}
+                    min={100}
+                    step={1}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           <Button 
             onClick={calculateSettings} 
             className="w-full"
-            disabled={targetMicrons < ZERO_POINT_MICRONS}
+            disabled={targetMicrons < selectedModel.zeroPointMicrons}
           >
             Calculate
           </Button>
@@ -108,7 +228,7 @@ export function Calculator() {
             <div className="mt-4 space-y-4 border rounded-lg p-4">
               <div>
                 <h3 className="font-semibold text-lg">Grind Setting:</h3>
-                {settings.microns === ZERO_POINT_MICRONS ? (
+                {settings.microns === selectedModel.zeroPointMicrons ? (
                   <p className="text-lg mt-2">At zero point (no adjustment needed)</p>
                 ) : (
                   <p className="text-lg mt-2">

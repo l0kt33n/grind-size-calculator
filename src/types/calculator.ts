@@ -12,18 +12,99 @@ export interface BrewMethod {
   description: string;
 }
 
-export const ZERO_POINT_MICRONS = 250;
-export const MICRONS_PER_CLICK = 25;
-export const CLICKS_PER_ROTATION = 30;
-export const NUMBERS_PER_ROTATION = 10;
-export const CLICKS_PER_NUMBER = 3;
-export const MICRONS_PER_ROTATION = MICRONS_PER_CLICK * CLICKS_PER_ROTATION;
-export const MAX_ADJUSTABLE_MICRONS = 1360 - ZERO_POINT_MICRONS;
+export interface GrinderModel {
+  id: string;
+  name: string;
+  adjustmentType: 'Internal' | 'Top' | 'External';
+  numbersPerRotation: number;
+  clicksPerRotation: number;
+  clicksPerNumber: number;
+  mmPerClick: number;
+  zeroPointMicrons: number;
+}
+
+export const GRINDER_MODELS: GrinderModel[] = [
+  {
+    id: 'q2',
+    name: 'Q2 S & J & JE',
+    adjustmentType: 'Internal',
+    numbersPerRotation: 10,
+    clicksPerRotation: 30,
+    clicksPerNumber: 3,
+    mmPerClick: 0.025,
+    zeroPointMicrons: 250
+  },
+  {
+    id: 'jx-pro',
+    name: 'JX-Pro S & JE-Plus',
+    adjustmentType: 'Top',
+    numbersPerRotation: 10,
+    clicksPerRotation: 40,
+    clicksPerNumber: 4,
+    mmPerClick: 0.0125,
+    zeroPointMicrons: 200
+  },
+  {
+    id: 'x-pro',
+    name: 'X-Pro S & X-Ultra',
+    adjustmentType: 'External',
+    numbersPerRotation: 6,
+    clicksPerRotation: 60,
+    clicksPerNumber: 10,
+    mmPerClick: 0.0125,
+    zeroPointMicrons: 200
+  },
+  {
+    id: 'j-max',
+    name: 'J-Max S',
+    adjustmentType: 'External',
+    numbersPerRotation: 9,
+    clicksPerRotation: 90,
+    clicksPerNumber: 10,
+    mmPerClick: 0.0088,
+    zeroPointMicrons: 200
+  },
+  {
+    id: 'j-ultra',
+    name: 'J-Ultra',
+    adjustmentType: 'External',
+    numbersPerRotation: 10,
+    clicksPerRotation: 100,
+    clicksPerNumber: 10,
+    mmPerClick: 0.008,
+    zeroPointMicrons: 200
+  },
+  {
+    id: 'k-series',
+    name: 'K-Plus & K-Pro & K-Max & ZP6 Special',
+    adjustmentType: 'External',
+    numbersPerRotation: 9,
+    clicksPerRotation: 90,
+    clicksPerNumber: 10,
+    mmPerClick: 0.022,
+    zeroPointMicrons: 200
+  },
+  {
+    id: 'k-ultra',
+    name: 'K-Ultra',
+    adjustmentType: 'External',
+    numbersPerRotation: 10,
+    clicksPerRotation: 100,
+    clicksPerNumber: 10,
+    mmPerClick: 0.02,
+    zeroPointMicrons: 200
+  }
+];
+
+// Default to Q2 S model
+export const DEFAULT_MODEL = GRINDER_MODELS[0];
+
+export const MAX_ADJUSTABLE_MICRONS = 1360;
 
 export const BREW_METHODS: BrewMethod[] = [
   {
     name: "Turkish",
-    minMicrons: ZERO_POINT_MICRONS,
+    minMicrons: 200,
     maxMicrons: 300,
     description: "Extra fine grind (zero point)"
   },

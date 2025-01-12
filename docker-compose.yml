@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  q2-calculator:
+  1zpresso-grind-calculator:
     build:
       context: .
       dockerfile: Dockerfile
