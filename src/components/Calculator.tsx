@@ -38,7 +38,7 @@ export function Calculator() {
     // Use either custom settings or model defaults
     const settings = showAdvanced ? customSettings : selectedModel
     
-    let adjustedMicrons = targetMicrons
+    const adjustedMicrons = targetMicrons
 
     if (calibrationData && calibrationData.points.length >= 2) {
       // Sort calibration points by measured microns
