@@ -14,8 +14,10 @@ import {
   GRINDER_MODELS,
   DEFAULT_MODEL,
   BREW_METHODS,
-  MAX_ADJUSTABLE_MICRONS
+  MAX_ADJUSTABLE_MICRONS,
+  CalibrationData
 } from '@/types/calculator'
+import { Calibration } from './Calibration'
 
 export function Calculator() {
   const [targetMicrons, setTargetMicrons] = useState<number>(500)
@@ -30,28 +32,64 @@ export function Calculator() {
     mmPerClick: DEFAULT_MODEL.mmPerClick,
     zeroPointMicrons: DEFAULT_MODEL.zeroPointMicrons
   })
+  const [calibrationData, setCalibrationData] = useState<CalibrationData | null>(null)
 
   const calculateSettings = () => {
     // Use either custom settings or model defaults
     const settings = showAdvanced ? customSettings : selectedModel
     
-    // Convert mm to microns and calculate adjustment
+    let adjustedMicrons = targetMicrons
+
+    if (calibrationData && calibrationData.points.length >= 2) {
+      // Sort calibration points by measured microns
+      const sortedPoints = [...calibrationData.points].sort((a, b) => a.measuredMicrons - b.measuredMicrons)
+      
+      // Find the two closest calibration points
+      let lower = sortedPoints[0]
+      let upper = sortedPoints[sortedPoints.length - 1]
+      
+      for (let i = 0; i < sortedPoints.length - 1; i++) {
+        if (sortedPoints[i].measuredMicrons <= targetMicrons && sortedPoints[i + 1].measuredMicrons >= targetMicrons) {
+          lower = sortedPoints[i]
+          upper = sortedPoints[i + 1]
+          break
+        }
+      }
+
+      // Convert points to clicks
+      const lowerClicks = lower.rotations * settings.clicksPerRotation + 
+                         lower.numbers * settings.clicksPerNumber + 
+                         lower.clicks
+      const upperClicks = upper.rotations * settings.clicksPerRotation + 
+                         upper.numbers * settings.clicksPerNumber + 
+                         upper.clicks
+      
+      // Linear interpolation between calibration points
+      const ratio = (targetMicrons - lower.measuredMicrons) / (upper.measuredMicrons - lower.measuredMicrons)
+      const targetClicks = Math.round(lowerClicks + ratio * (upperClicks - lowerClicks))
+      
+      // Calculate rotations, numbers, and clicks
+      const rotations = Math.floor(targetClicks / settings.clicksPerRotation)
+      const remainingClicks = targetClicks % settings.clicksPerRotation
+      const numbers = Math.floor(remainingClicks / settings.clicksPerNumber)
+      const clicks = remainingClicks % settings.clicksPerNumber
+
+      setSettings({
+        rotations,
+        numbers,
+        clicks,
+        microns: targetMicrons
+      })
+      return
+    }
+    
+    // Fall back to default calculation if not enough calibration points
     const micronsPerClick = settings.mmPerClick * 1000
-    const adjustmentMicrons = Math.max(0, targetMicrons - settings.zeroPointMicrons)
-    
-    // Calculate total clicks needed for the adjustment
+    const adjustmentMicrons = Math.max(0, adjustedMicrons - settings.zeroPointMicrons)
     const totalClicks = Math.round(adjustmentMicrons / micronsPerClick)
-    
-    // Calculate full rotations
     const rotations = Math.floor(totalClicks / settings.clicksPerRotation)
-    
-    // Calculate remaining clicks
     const remainingClicks = totalClicks % settings.clicksPerRotation
-    
-    // Calculate numbers (using clicks per number)
     const numbers = Math.floor(remainingClicks / settings.clicksPerNumber)
-    
-    // Calculate final clicks
     const clicks = remainingClicks % settings.clicksPerNumber
 
     setSettings({
@@ -80,6 +118,14 @@ export function Calculator() {
     setTargetMicrons(targetMicrons)
     setTargetMicronsInput(targetMicrons.toString())
     calculateSettings()
+  }
+
+  const handleCalibrationUpdate = (data: CalibrationData) => {
+    setCalibrationData(data)
+    // Only recalculate if we have a target micron value
+    if (targetMicrons > 0) {
+      calculateSettings()
+    }
   }
 
   return (
@@ -114,11 +160,22 @@ export function Calculator() {
             <Input
               type="number"
               value={targetMicronsInput}
-              onChange={(e) => setTargetMicronsInput(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTargetMicronsInput(value);
+                const numValue = Number(value);
+                if (!isNaN(numValue)) {
+                  setTargetMicrons(numValue);
+                  calculateSettings();
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  setTargetMicrons(Number(targetMicronsInput))
-                  calculateSettings()
+                  const numValue = Number(targetMicronsInput);
+                  if (!isNaN(numValue)) {
+                    setTargetMicrons(numValue);
+                    calculateSettings();
+                  }
                 }
               }}
               min={selectedModel.zeroPointMicrons}
@@ -215,6 +272,11 @@ export function Calculator() {
               </div>
             </CollapsibleContent>
           </Collapsible>
+
+          <Calibration 
+            selectedModel={selectedModel}
+            onCalibrationUpdate={handleCalibrationUpdate}
+          />
 
           <Button 
             onClick={calculateSettings} 

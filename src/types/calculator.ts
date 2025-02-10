@@ -132,4 +132,25 @@ export const BREW_METHODS: BrewMethod[] = [
     maxMicrons: 1360,
     description: "Coarse grind (around 3 rotations)"
   }
+];
+
+export interface CalibrationPoint {
+  rotations: number;
+  numbers: number;
+  clicks: number;
+  measuredMicrons: number;
+  timestamp: number;
+}
+
+export interface CalibrationData {
+  modelId: string;
+  points: CalibrationPoint[];
+  lastUpdated: number;
+}
+
+export const CALIBRATION_POINTS = [
+  { name: "Zero Point", description: "Burrs touching - no coffee should pass through", targetRotations: 0, targetNumbers: 0, targetClicks: 0 },
+  { name: "Espresso", description: "Fine espresso grind", targetRotations: 0, targetNumbers: 8, targetClicks: 0 },
+  { name: "Pour Over", description: "Medium grind for filter coffee", targetRotations: 2, targetNumbers: 0, targetClicks: 0 },
+  { name: "French Press", description: "Coarse grind", targetRotations: 3, targetNumbers: 5, targetClicks: 0 },
 ]; 
