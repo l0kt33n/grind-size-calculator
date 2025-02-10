@@ -37,7 +37,7 @@ export function Calibration({ selectedModel, onCalibrationUpdate }: CalibrationP
       setCalibrationData(initial)
       onCalibrationUpdate(initial)
     }
-  }, [selectedModel.id, onCalibrationUpdate])
+  }, [selectedModel.id])
 
   const addCalibrationPoint = (point: CalibrationPoint) => {
     const newData = {
