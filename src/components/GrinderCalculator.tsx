@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Slider } from "@/components/ui/slider";
 import { queryMicrons, formatSetting } from '@/lib/coffee-utils';
 import { QueryResult, Grinder } from '@/types/coffee';
+import Fuse from 'fuse.js';
+
+const BREW_METHODS = [
+  'Turkish',
+  'Espresso',
+  'V60',
+  'Aeropress',
+  'Moka Pot',
+  'Pour Over',
+  'Siphon',
+  'Filter Coffee Machine',
+  'French Press',
+  'Cupping',
+  'Cold Brew',
+  'Cold Drip',
+  'Steep-and-release'
+];
 
 export function GrinderCalculator() {
   const [grinders, setGrinders] = useState<Grinder[]>([]);
@@ -18,6 +35,7 @@ export function GrinderCalculator() {
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Load grinders on component mount
   useEffect(() => {
@@ -39,6 +57,27 @@ export function GrinderCalculator() {
 
     loadGrinders();
   }, []);
+
+  // Fuzzy search for grinders
+  const fuse = useMemo(() => {
+    return new Fuse(grinders, {
+      keys: ['name', 'brand'],
+      threshold: 0.3,
+      includeScore: true
+    });
+  }, [grinders]);
+
+  const filteredGrinders = useMemo(() => {
+    if (!searchQuery) return grinders;
+    return fuse.search(searchQuery).map((result: Fuse.FuseResult<Grinder>) => result.item);
+  }, [fuse, searchQuery, grinders]);
+
+  // Auto-calculate when inputs change
+  useEffect(() => {
+    if (selectedGrinder) {
+      handleQuery();
+    }
+  }, [selectedGrinder, microns, brewMethod]);
 
   const handleQuery = async () => {
     if (!selectedGrinder) {
@@ -85,7 +124,15 @@ export function GrinderCalculator() {
                   <SelectValue placeholder="Select a grinder" />
                 </SelectTrigger>
                 <SelectContent>
-                  {grinders.map((grinder) => (
+                  <div className="p-2 sticky top-0 bg-background z-10 border-b">
+                    <Input
+                      placeholder="Search grinders..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  {filteredGrinders.map((grinder: Grinder) => (
                     <SelectItem key={grinder.id} value={grinder.name}>
                       {grinder.name}
                     </SelectItem>
@@ -113,18 +160,23 @@ export function GrinderCalculator() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="brew-method">Brew Method (Optional)</Label>
-              <Input
-                id="brew-method"
-                placeholder="e.g. Espresso, Pour Over, Aeropress"
-                value={brewMethod}
-                onChange={(e) => setBrewMethod(e.target.value)}
-              />
+              <Label htmlFor="brew-method">Brew Method</Label>
+              <Select 
+                value={brewMethod} 
+                onValueChange={setBrewMethod}
+              >
+                <SelectTrigger id="brew-method">
+                  <SelectValue placeholder="Select a brew method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BREW_METHODS.map((method) => (
+                    <SelectItem key={method} value={method}>
+                      {method}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            <Button onClick={handleQuery} disabled={loading || !selectedGrinder}>
-              {loading ? 'Calculating...' : 'Calculate Setting'}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -137,7 +189,15 @@ export function GrinderCalculator() {
         </Card>
       )}
 
-      {result && (
+      {loading && (
+        <Card className="mb-6">
+          <CardContent className="pt-6 flex justify-center">
+            <div className="animate-pulse">Calculating...</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {result && !loading && (
         <Card>
           <CardHeader>
             <CardTitle>{result.grinder.name}</CardTitle>
