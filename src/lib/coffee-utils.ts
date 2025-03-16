@@ -10,9 +10,7 @@
  */
 
 import { 
-  BrewMethod, 
   CoffeeData, 
-  Grinder, 
   GrindCategory, 
   GRIND_CATEGORY_RANGES, 
   QueryParams, 
@@ -217,6 +215,7 @@ export const queryMicrons = async (params: QueryParams): Promise<QueryResult> =>
           maxSetting = endVal;
         }
       } catch (e) {
+        console.error('Error parsing setting:', e);
         continue;
       }
     } else if (setting_format === 'complex') {

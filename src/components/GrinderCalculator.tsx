@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Slider } from "@/components/ui/slider";
 import { queryMicrons, formatSetting } from '@/lib/coffee-utils';
 import { QueryResult, Grinder } from '@/types/coffee';
-import Fuse from 'fuse.js';
+import Fuse, { FuseResult } from 'fuse.js';
 
 const BREW_METHODS = [
   'Turkish',
@@ -69,7 +68,7 @@ export function GrinderCalculator() {
 
   const filteredGrinders = useMemo(() => {
     if (!searchQuery) return grinders;
-    return fuse.search(searchQuery).map((result: Fuse.FuseResult<Grinder>) => result.item);
+    return fuse.search(searchQuery).map((result: FuseResult<Grinder>) => result.item);
   }, [fuse, searchQuery, grinders]);
 
   // Auto-calculate when inputs change
@@ -96,8 +95,8 @@ export function GrinderCalculator() {
       });
       
       setResult(queryResult);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
