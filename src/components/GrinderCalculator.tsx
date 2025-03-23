@@ -44,8 +44,11 @@ export function GrinderCalculator() {
         const data = await response.json();
         setGrinders(data.grinders);
         
-        // Set default selected grinder if available
-        if (data.grinders.length > 0) {
+        // Load selected grinder from localStorage or set default
+        const savedGrinder = localStorage.getItem('selectedGrinder');
+        if (savedGrinder && data.grinders.some((g: Grinder) => g.name === savedGrinder)) {
+          setSelectedGrinder(savedGrinder);
+        } else if (data.grinders.length > 0) {
           setSelectedGrinder(data.grinders[0].name);
         }
       } catch (err) {
@@ -77,6 +80,13 @@ export function GrinderCalculator() {
       handleQuery();
     }
   }, [selectedGrinder, microns, brewMethod]);
+
+  // Save selected grinder to localStorage when it changes
+  useEffect(() => {
+    if (selectedGrinder) {
+      localStorage.setItem('selectedGrinder', selectedGrinder);
+    }
+  }, [selectedGrinder]);
 
   const handleQuery = async () => {
     if (!selectedGrinder) {
