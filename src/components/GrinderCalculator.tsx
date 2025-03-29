@@ -219,7 +219,7 @@ export function GrinderCalculator() {
               <div>
                 <h3 className="text-lg font-semibold mb-1">Recommended Setting</h3>
                 <p className="text-xl">
-                  {formatSetting(result.calculated_setting, result.setting_format, result.grinder.clicks_per_number)}
+                  {formatSetting(result.calculated_setting, result.setting_format)}
                 </p>
               </div>
 
@@ -239,7 +239,7 @@ export function GrinderCalculator() {
                         </div>
                         {method.start_setting && method.end_setting && (
                           <div className="text-sm text-muted-foreground">
-                            Settings: {formatSetting(method.start_setting, method.setting_format, result.grinder.clicks_per_number)} - {formatSetting(method.end_setting, method.setting_format, result.grinder.clicks_per_number)}
+                            Settings: {formatSetting(method.start_setting, method.setting_format)} - {formatSetting(method.end_setting, method.setting_format)}
                           </div>
                         )}
                       </li>
