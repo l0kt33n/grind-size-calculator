@@ -47,7 +47,7 @@ export const loadCoffeeData = async (): Promise<CoffeeData> => {
 /**
  * Format a grinder setting for display
  */
-export const formatSetting = (setting: string | number | null, format: SettingFormat, clicksPerNumber: number = 10): string => {
+export const formatSetting = (setting: string | number | null, format: SettingFormat): string => {
   if (setting === null) return 'Unknown';
   
   if (format === 'simple') {

@@ -1,4 +1,4 @@
-import { mapMicronsToSetting, formatSetting, queryMicrons } from './coffee-utils';
+import { mapMicronsToSetting, queryMicrons } from './coffee-utils';
 import { SettingFormat, Grinder } from '@/types/coffee';
 import grinderData from '../../public/grinderData.json';
 
