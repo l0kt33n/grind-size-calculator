@@ -42,6 +42,7 @@ export interface Grinder {
   min_microns: number | null;
   max_microns: number | null;
   url: string | null;
+  clicks_per_number: number;
   brew_methods: BrewMethod[];
 }
 

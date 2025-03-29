@@ -114,7 +114,7 @@ export function GrinderCalculator() {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
           <CardTitle>Coffee Grinder Calculator</CardTitle>
           <CardDescription>
@@ -206,7 +206,7 @@ export function GrinderCalculator() {
         </Card>
       )}
 
-      {result && !loading && (
+      {result && (
         <Card>
           <CardHeader>
             <CardTitle>{result.grinder.name}</CardTitle>
@@ -219,7 +219,7 @@ export function GrinderCalculator() {
               <div>
                 <h3 className="text-lg font-semibold mb-1">Recommended Setting</h3>
                 <p className="text-xl">
-                  {formatSetting(result.calculated_setting, result.setting_format)}
+                  {formatSetting(result.calculated_setting, result.setting_format, result.grinder.clicks_per_number)}
                 </p>
               </div>
 
@@ -237,6 +237,11 @@ export function GrinderCalculator() {
                           Range: {method.start_microns} - {method.end_microns} microns 
                           ({method.grind_category})
                         </div>
+                        {method.start_setting && method.end_setting && (
+                          <div className="text-sm text-muted-foreground">
+                            Settings: {formatSetting(method.start_setting, method.setting_format, result.grinder.clicks_per_number)} - {formatSetting(method.end_setting, method.setting_format, result.grinder.clicks_per_number)}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

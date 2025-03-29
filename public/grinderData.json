@@ -1842,7 +1842,7 @@
       "min_microns": 0.0,
       "max_microns": 1360.0,
       "url": "https://honestcoffeeguide.com/1zpresso-q-air-grind-settings/",
-      "clicks_per_number": 10,
+      "clicks_per_number": 3,
       "brew_methods": [
         {
           "id": 160,

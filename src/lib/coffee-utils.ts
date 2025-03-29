@@ -28,6 +28,13 @@ export const loadCoffeeData = async (): Promise<CoffeeData> => {
   if (coffeeData) return coffeeData;
   
   try {
+    // In test environment, use the imported data
+    if (typeof window === 'undefined') {
+      coffeeData = (await import('../../public/grinderData.json')).default as CoffeeData;
+      return coffeeData;
+    }
+    
+    // In browser environment, fetch the data
     const response = await fetch('/grinderData.json');
     coffeeData = await response.json() as CoffeeData;
     return coffeeData;
@@ -40,13 +47,27 @@ export const loadCoffeeData = async (): Promise<CoffeeData> => {
 /**
  * Format a grinder setting for display
  */
-export const formatSetting = (setting: string | number | null, format: SettingFormat): string => {
+export const formatSetting = (setting: string | number | null, format: SettingFormat, clicksPerNumber: number = 10): string => {
   if (setting === null) return 'Unknown';
   
   if (format === 'simple') {
     return `${setting} clicks`;
   } else {
-    return String(setting); // For complex settings like "1.5.3"
+    // For complex settings like "1.5.3", we need to handle different clicks per number
+    const parts = String(setting).split('.');
+    if (parts.length === 3) {
+      // Format: rotations.numbers.clicks
+      const rotations = parseInt(parts[0]);
+      const numbers = parseInt(parts[1]);
+      const clicks = parseInt(parts[2]);
+      return `${rotations}.${numbers}.${clicks}`;
+    } else if (parts.length === 2) {
+      // Format: rotations.clicks
+      const rotations = parseInt(parts[0]);
+      const clicks = parseInt(parts[1]);
+      return `${rotations}.${clicks}`;
+    }
+    return String(setting);
   }
 };
 
@@ -76,8 +97,13 @@ export const mapMicronsToSetting = (
   maxSetting: string | number,
   minMicrons: number,
   maxMicrons: number,
-  settingFormat: SettingFormat
+  settingFormat: SettingFormat,
+  clicksPerNumber: number = 10
 ): string | number | null => {
+  // Handle edge cases
+  if (microns <= minMicrons) return minSetting;
+  if (microns >= maxMicrons) return maxSetting;
+  
   // Calculate what proportion of the micron range this value is
   const micronRange = maxMicrons - minMicrons;
   if (micronRange <= 0) return null;
@@ -96,17 +122,19 @@ export const mapMicronsToSetting = (
     const parseComplexSetting = (s: string | number): [number, number, number, number] => {
       const parts = String(s).split('.');
       if (parts.length === 3) {
-        // Format: rotations.numbers.clicks (e.g., "1.5.3")
+        // Format: rotations.numbers.clicks
         const rotations = parseInt(parts[0]);
         const numbers = parseInt(parts[1]);
         const clicks = parseInt(parts[2]);
-        const numValue = rotations * 100 + numbers * 10 + clicks;
+        // Calculate total clicks: (rotations * 10 * clicksPerNumber) + (numbers * clicksPerNumber) + clicks
+        const numValue = (rotations * 10 * clicksPerNumber) + (numbers * clicksPerNumber) + clicks;
         return [rotations, numbers, clicks, numValue];
       } else if (parts.length === 2) {
-        // Format: rotations.clicks (e.g., "1.5")
+        // Format: rotations.clicks
         const rotations = parseInt(parts[0]);
         const clicks = parseInt(parts[1]);
-        const numValue = rotations * 10 + clicks;
+        // Calculate total clicks: (rotations * 10 * clicksPerNumber) + clicks
+        const numValue = (rotations * 10 * clicksPerNumber) + clicks;
         return [rotations, 0, clicks, numValue];
       }
       return [0, 0, 0, 0];
@@ -120,14 +148,15 @@ export const mapMicronsToSetting = (
     const minParts = String(minSetting).split('.');
     if (minParts.length === 3) {
       // Format: rotations.numbers.clicks
-      const rotations = Math.floor(targetValue / 100);
-      const numbers = Math.floor((targetValue % 100) / 10);
-      const clicks = targetValue % 10;
+      const rotations = Math.floor(targetValue / (10 * clicksPerNumber));
+      const remainingClicks = targetValue % (10 * clicksPerNumber);
+      const numbers = Math.floor(remainingClicks / clicksPerNumber);
+      const clicks = remainingClicks % clicksPerNumber;
       return `${rotations}.${numbers}.${clicks}`;
     } else if (minParts.length === 2) {
       // Format: rotations.clicks
-      const rotations = Math.floor(targetValue / 10);
-      const clicks = targetValue % 10;
+      const rotations = Math.floor(targetValue / (10 * clicksPerNumber));
+      const clicks = targetValue % (10 * clicksPerNumber);
       return `${rotations}.${clicks}`;
     }
     
@@ -163,17 +192,6 @@ export const queryMicrons = async (params: QueryParams): Promise<QueryResult> =>
     throw new Error(`No grinder found matching '${grinderName}'`);
   }
   
-  const { min_microns, max_microns } = grinder;
-  
-  // Check if the target microns is within the grinder's range
-  if (min_microns !== null && max_microns !== null) {
-    if (targetMicrons < min_microns || targetMicrons > max_microns) {
-      throw new Error(
-        `Target micron value ${targetMicrons} is outside the grinder's range (${min_microns}-${max_microns})`
-      );
-    }
-  }
-  
   // Find matching brew methods
   let matchingMethods = grinder.brew_methods.filter(method => {
     const { start_microns, end_microns, method_name } = method;
@@ -196,37 +214,57 @@ export const queryMicrons = async (params: QueryParams): Promise<QueryResult> =>
   let minSetting: string | number | null = null;
   let maxSetting: string | number | null = null;
   let settingFormat: SettingFormat = 'simple';
+  let minMicrons: number | null = null;
+  let maxMicrons: number | null = null;
   
-  // Look through all brew methods to find extreme settings
-  for (const method of grinder.brew_methods) {
-    const { start_setting, end_setting, setting_format } = method;
-    
-    if (!start_setting || !end_setting) continue;
-    
-    if (setting_format === 'simple') {
-      try {
-        const startVal = typeof start_setting === 'string' ? parseInt(start_setting) : start_setting;
-        const endVal = typeof end_setting === 'string' ? parseInt(end_setting) : end_setting;
-        
-        if (minSetting === null || startVal < (minSetting as number)) {
-          minSetting = startVal;
-        }
-        if (maxSetting === null || endVal > (maxSetting as number)) {
-          maxSetting = endVal;
-        }
-      } catch (e) {
-        console.error('Error parsing setting:', e);
-        continue;
-      }
-    } else if (setting_format === 'complex') {
-      // For complex settings, use string comparison
-      settingFormat = 'complex';
+  // If we have matching methods, use their settings
+  if (matchingMethods.length > 0) {
+    // Use the first matching method's settings
+    const method = matchingMethods[0];
+    if (method.start_setting && method.end_setting && 
+        method.start_microns !== null && method.end_microns !== null) {
+      minSetting = method.start_setting;
+      maxSetting = method.end_setting;
+      settingFormat = method.setting_format;
+      minMicrons = method.start_microns;
+      maxMicrons = method.end_microns;
+    }
+  } else {
+    // Look through all brew methods to find extreme settings
+    for (const method of grinder.brew_methods) {
+      const { start_setting, end_setting, setting_format, start_microns, end_microns } = method;
       
-      if (minSetting === null) {
-        minSetting = start_setting;
-      }
-      if (maxSetting === null) {
-        maxSetting = end_setting;
+      if (!start_setting || !end_setting || start_microns === null || end_microns === null) continue;
+      
+      if (setting_format === 'simple') {
+        try {
+          const startVal = typeof start_setting === 'string' ? parseInt(start_setting) : start_setting;
+          const endVal = typeof end_setting === 'string' ? parseInt(end_setting) : end_setting;
+          
+          if (minSetting === null || startVal < (minSetting as number)) {
+            minSetting = startVal;
+            minMicrons = start_microns;
+          }
+          if (maxSetting === null || endVal > (maxSetting as number)) {
+            maxSetting = endVal;
+            maxMicrons = end_microns;
+          }
+        } catch (e) {
+          console.error('Error parsing setting:', e);
+          continue;
+        }
+      } else if (setting_format === 'complex') {
+        // For complex settings, use string comparison
+        settingFormat = 'complex';
+        
+        if (minSetting === null) {
+          minSetting = start_setting;
+          minMicrons = start_microns;
+        }
+        if (maxSetting === null) {
+          maxSetting = end_setting;
+          maxMicrons = end_microns;
+        }
       }
     }
   }
@@ -285,16 +323,17 @@ export const queryMicrons = async (params: QueryParams): Promise<QueryResult> =>
   if (
     minSetting !== null && 
     maxSetting !== null && 
-    min_microns !== null && 
-    max_microns !== null
+    minMicrons !== null && 
+    maxMicrons !== null
   ) {
     calculatedSetting = mapMicronsToSetting(
       targetMicrons,
       minSetting,
       maxSetting,
-      min_microns,
-      max_microns,
-      settingFormat
+      minMicrons,
+      maxMicrons,
+      settingFormat,
+      grinder.clicks_per_number
     );
   }
   

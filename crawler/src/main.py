@@ -74,7 +74,7 @@ GRIND_CATEGORIES = {
 
 # 1Zpresso grinder models and their clicks per number
 ZPRESSO_CLICKS = {
-    'Q2': 3,  # Q2 models (Q2 S, Q2 Heptagonal/Pentagonal Burrs): 3 clicks per number
+    'Q': 3,  # Q2 models (Q2 S, Q2 Heptagonal/Pentagonal Burrs): 3 clicks per number
     'JE': 3,  # JE model: 3 clicks per number
     'J': 3,   # J model: 3 clicks per number
     'JX-PRO': 4,  # JX-Pro and JX-Pro S: 4 clicks per number
