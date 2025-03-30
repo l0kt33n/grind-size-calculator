@@ -16,7 +16,7 @@ import {
   QueryParams, 
   QueryResult, 
   SettingFormat 
-} from "@/types/coffee";
+} from "@/types/grinder";
 
 // Cache the coffee data
 let coffeeData: CoffeeData | null = null;

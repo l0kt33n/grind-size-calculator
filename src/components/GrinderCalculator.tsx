@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { queryMicrons, formatSetting } from '@/lib/coffee-utils';
-import { QueryResult, Grinder } from '@/types/coffee';
+import { queryMicrons, formatSetting } from '@/lib/grinder-utils';
+import { QueryResult, Grinder } from '@/types/grinder';
 import Fuse, { FuseResult } from 'fuse.js';
 
 const BREW_METHODS = [
