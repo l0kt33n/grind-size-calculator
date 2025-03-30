@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Navigation } from "@/components/Navigation";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,11 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://grind-size-calculator.vercel.app'),
   title: {
-    template: '%s | 1Zpresso Grind Calculator',
-    default: '1Zpresso Grind Calculator'
+    template: '%s | Coffee Tools',
+    default: 'Coffee Tools'
   },
-  description: 'A precise calculator for 1Zpresso grind settings',
-  applicationName: '1Zpresso Grind Calculator',
+  description: 'A set of tools for coffee enthusiasts including a grind size calculator and V60 brewing guide',
+  applicationName: 'Coffee Tools',
   manifest: '/manifest.json',
   themeColor: '#000000',
   viewport: {
@@ -40,10 +41,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
-      >
+    <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-background font-sans">
+        <Navigation />
         {children}
       </body>
     </html>

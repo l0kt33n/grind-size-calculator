@@ -1,5 +1,5 @@
-import { mapMicronsToSetting, queryMicrons } from './coffee-utils';
-import { SettingFormat, Grinder } from '@/types/coffee';
+import { mapMicronsToSetting, queryMicrons } from './grinder-utils';
+import { SettingFormat, Grinder } from '@/types/grinder';
 import grinderData from '../../public/grinderData.json';
 
 // Get all 1Zpresso grinders
