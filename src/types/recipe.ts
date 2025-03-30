@@ -1,4 +1,6 @@
 export type StepType = 'bloom' | 'pour' | 'drawdown';
+export type RecipeMode = 'basic' | 'advanced';
+export type InputMode = 'coffee' | 'water';
 
 export interface Step {
   id: string;
@@ -21,6 +23,8 @@ export interface Recipe {
   pours: number; // Number of subsequent pours (not including bloom)
   steps: Step[]; // Array of Step objects
   totalBrewTime: number; // Total brew time in seconds
+  mode?: RecipeMode; // Basic or advanced pour step definition
+  inputMode?: InputMode; // Coffee or water weight as primary input
 }
 
 export interface CustomRecipeParams {
@@ -28,6 +32,11 @@ export interface CustomRecipeParams {
   ratio: number;
   pours: number;
   bloomMultiplier?: number; // Optional with default value
+  totalBrewTimeSeconds?: number; // Optional total brew time in seconds for basic mode
+  mode?: RecipeMode; // Optional mode (basic or advanced)
+  inputMode?: InputMode; // Optional input mode (coffee or water)
+  waterWeight?: number; // Optional water weight (used when inputMode is 'water')
+  advancedSteps?: Step[]; // Optional advanced steps for advanced mode
 }
 
 export interface CustomizationOptions {
