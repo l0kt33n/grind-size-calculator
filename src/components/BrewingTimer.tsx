@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Recipe, Step } from '@/types/recipe';
 import { formatTime, calculateRecipeWithCustomWater } from '@/lib/recipe-utils';
@@ -145,7 +145,7 @@ export const BrewingTimer = () => {
   };
 
   // Create debounced version of applyCustomWater
-  const debouncedApplyCustomWater = useCallback(
+  const debouncedApplyCustomWater = 
     debounce((weight: number) => {
       if (weight >= 100 && originalRecipe) {
         const customizedRecipe = calculateRecipeWithCustomWater(originalRecipe, {
@@ -153,9 +153,7 @@ export const BrewingTimer = () => {
         });
         setSelectedRecipe(customizedRecipe);
       }
-    }, 500),
-    [originalRecipe]
-  );
+    }, 500);
 
   // Handle water weight input change with debounce
   const handleCustomWaterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
