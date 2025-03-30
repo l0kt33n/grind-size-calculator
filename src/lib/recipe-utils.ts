@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Recipe, Step, CustomRecipeParams, StepType, CustomizationOptions, RecipeMode, InputMode } from '@/types/recipe';
+import { Recipe, Step, CustomRecipeParams, StepType, CustomizationOptions } from '@/types/recipe';
 
 // Default timing constants
 const DEFAULT_BLOOM_TIME = 45; // seconds
@@ -85,7 +85,6 @@ export const createCustomRecipe = (params: CustomRecipeParams): Recipe => {
   if (mode === 'basic') {
     // Basic mode with even water distribution and timing
     steps = createBasicModeSteps({
-      coffeeWeight,
       waterWeight,
       bloomWater,
       bloomRatio,
@@ -100,7 +99,6 @@ export const createCustomRecipe = (params: CustomRecipeParams): Recipe => {
   } else {
     // Fallback to standard step creation (legacy behavior)
     steps = createLegacySteps({
-      coffeeWeight,
       waterWeight,
       bloomWater,
       bloomRatio,
@@ -133,13 +131,11 @@ export const createCustomRecipe = (params: CustomRecipeParams): Recipe => {
  * Helper function to create steps for the legacy behavior
  */
 const createLegacySteps = ({
-  coffeeWeight,
   waterWeight,
   bloomWater,
   bloomRatio,
   pours
 }: {
-  coffeeWeight: number;
   waterWeight: number;
   bloomWater: number;
   bloomRatio: number;
@@ -201,7 +197,6 @@ const createLegacySteps = ({
  * Helper function to create steps for the basic mode with even distribution
  */
 const createBasicModeSteps = ({
-  coffeeWeight,
   waterWeight,
   bloomWater,
   bloomRatio,
@@ -210,7 +205,6 @@ const createBasicModeSteps = ({
   waterTemperature,
   temperatureUnit
 }: {
-  coffeeWeight: number;
   waterWeight: number;
   bloomWater: number;
   bloomRatio: number;

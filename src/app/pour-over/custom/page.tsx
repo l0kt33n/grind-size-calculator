@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Recipe, Step, InputMode, RecipeMode, TemperatureUnit } from "@/types/recipe";
+import { Recipe, Step, InputMode, RecipeMode } from "@/types/recipe";
 import { 
   Tabs, 
   TabsContent, 
@@ -584,7 +584,8 @@ export default function CustomRecipePage() {
                                           const drawdownTime = 60; // seconds
                                           const remainingTime = totalSeconds - bloomTime - drawdownTime;
                                           return Math.max(1, Math.floor(remainingTime / pours));
-                                        } catch (e) {
+                                        } catch (error) {
+                                          console.error("Error calculating pour time:", error);
                                           return 30; // fallback value
                                         }
                                       })()} seconds
