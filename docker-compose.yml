@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  1zpresso-grind-calculator:
+  pour-over-coffee-tool:
     build:
       context: .
       dockerfile: Dockerfile
