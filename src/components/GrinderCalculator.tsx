@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,21 +74,8 @@ export function GrinderCalculator() {
     return fuse.search(searchQuery).map((result: FuseResult<Grinder>) => result.item);
   }, [fuse, searchQuery, grinders]);
 
-  // Auto-calculate when inputs change
-  useEffect(() => {
-    if (selectedGrinder) {
-      handleQuery();
-    }
-  }, [selectedGrinder, microns, brewMethod]);
-
-  // Save selected grinder to localStorage when it changes
-  useEffect(() => {
-    if (selectedGrinder) {
-      localStorage.setItem('selectedGrinder', selectedGrinder);
-    }
-  }, [selectedGrinder]);
-
-  const handleQuery = async () => {
+  // Define handleQuery with useCallback to memoize it
+  const handleQuery = useCallback(async () => {
     if (!selectedGrinder) {
       setError('Please select a grinder');
       return;
@@ -110,7 +97,21 @@ export function GrinderCalculator() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedGrinder, microns, brewMethod]);
+
+  // Auto-calculate when inputs change
+  useEffect(() => {
+    if (selectedGrinder) {
+      handleQuery();
+    }
+  }, [selectedGrinder, microns, brewMethod, handleQuery]);
+
+  // Save selected grinder to localStorage when it changes
+  useEffect(() => {
+    if (selectedGrinder) {
+      localStorage.setItem('selectedGrinder', selectedGrinder);
+    }
+  }, [selectedGrinder]);
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
