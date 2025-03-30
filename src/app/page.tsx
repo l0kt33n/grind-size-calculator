@@ -28,8 +28,8 @@ export default function Home() {
       <h1 className="text-3xl font-bold text-center mb-8">Coffee Grinder Size Calculator</h1>
       
       <div className="flex justify-center mb-8">
-        <Link href="/v60">
-          <Button className="text-lg px-6 py-2">V60 Brewing Guide</Button>
+        <Link href="/pour-over">
+          <Button className="text-lg px-6 py-2">Pour-Over Brewing Guide</Button>
         </Link>
       </div>
       

@@ -13,7 +13,7 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { debounce } from 'lodash';
 
-export const V60Brewing = () => {
+export const PourOverBrewing = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [originalRecipe, setOriginalRecipe] = useState<Recipe | null>(null);
   const [currentTimeInSeconds, setCurrentTimeInSeconds] = useState<number>(0);
@@ -21,11 +21,11 @@ export const V60Brewing = () => {
   const [currentStep, setCurrentStep] = useState<Step | null>(null);
   const [isCustomFormVisible, setIsCustomFormVisible] = useState<boolean>(false);
   const [isBrewing, setIsBrewing] = useState<boolean>(false);
+  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
   const [currentStepWaterTarget, setCurrentStepWaterTarget] = useState<number>(0);
   const [waterForCurrentStep, setWaterForCurrentStep] = useState<number>(0);
   const [nextStepTime, setNextStepTime] = useState<string>('');
   const [customWaterWeight, setCustomWaterWeight] = useState<number>(0);
-  const [showWaterAdjust, setShowWaterAdjust] = useState<boolean>(false);
 
   // Get the current step based on timer
   useEffect(() => {
@@ -107,6 +107,11 @@ export const V60Brewing = () => {
   // Handle timer updates
   const handleTimeUpdate = (timeInSeconds: number) => {
     setCurrentTimeInSeconds(timeInSeconds);
+    if (timeInSeconds > 0) {
+      setIsTimerActive(true);
+    } else {
+      setIsTimerActive(false);
+    }
   };
 
   // Handle recipe selection
@@ -118,7 +123,12 @@ export const V60Brewing = () => {
     setCurrentStepWaterTarget(recipe.steps[0].targetWeight);
     setWaterForCurrentStep(0);
     setCustomWaterWeight(recipe.waterWeight);
-    setShowWaterAdjust(true);
+    setIsBrewing(true);
+    setCurrentStep(recipe.steps[0]);
+    
+    if (recipe.steps.length > 1) {
+      setNextStepTime(recipe.steps[1].targetTime);
+    }
   };
 
   // Handle custom recipe creation
@@ -132,20 +142,25 @@ export const V60Brewing = () => {
     setCurrentStepWaterTarget(newRecipe.steps[0].targetWeight);
     setWaterForCurrentStep(0);
     setCustomWaterWeight(newRecipe.waterWeight);
-    setShowWaterAdjust(true);
+    setIsBrewing(true);
+    setCurrentStep(newRecipe.steps[0]);
+    
+    if (newRecipe.steps.length > 1) {
+      setNextStepTime(newRecipe.steps[1].targetTime);
+    }
   };
 
   // Create debounced version of applyCustomWater
   const debouncedApplyCustomWater = useCallback(
     debounce((weight: number) => {
-      if (weight >= 100 && selectedRecipe) {
-        const customizedRecipe = calculateRecipeWithCustomWater(selectedRecipe, {
+      if (weight >= 100 && originalRecipe) {
+        const customizedRecipe = calculateRecipeWithCustomWater(originalRecipe, {
           waterWeight: weight
         });
         setSelectedRecipe(customizedRecipe);
       }
     }, 500),
-    [selectedRecipe]
+    [originalRecipe]
   );
 
   // Handle water weight input change with debounce
@@ -163,7 +178,6 @@ export const V60Brewing = () => {
     
     setIsBrewing(true);
     setCurrentStep(selectedRecipe.steps[0]);
-    setShowWaterAdjust(false);
     
     if (selectedRecipe.steps.length > 1) {
       setNextStepTime(selectedRecipe.steps[1].targetTime);
@@ -180,8 +194,8 @@ export const V60Brewing = () => {
     setWaterForCurrentStep(0);
     setNextStepTime('');
     setIsBrewing(false);
+    setIsTimerActive(false);
     setCurrentStep(null);
-    setShowWaterAdjust(false);
   };
 
   // Get water status display values
@@ -210,7 +224,7 @@ export const V60Brewing = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-4">V60 Pour-Over Timer</h2>
+        <h2 className="text-2xl font-bold mb-4">Pour-Over Coffee Timer</h2>
         <p className="text-gray-600 mb-6">Select a recipe or create your own to start brewing</p>
       </div>
 
@@ -253,65 +267,7 @@ export const V60Brewing = () => {
         </div>
       )}
 
-      {selectedRecipe && showWaterAdjust && (
-        <div className="max-w-md mx-auto w-full">
-          <Card>
-            <CardHeader>
-              <CardTitle>{selectedRecipe.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-              <div className="flex items-center space-x-2 mb-2">
-              <Label htmlFor="waterWeight">Total Water Weight: </Label>
-                    <Input
-                      id="waterWeight"
-                      type="number"
-                      value={customWaterWeight}
-                      onChange={handleCustomWaterChange}
-                      min={100}
-                      className="w-24"
-                    />               
-                    <span>g</span>   
-                </div>
-                
-                <div className="pt-4">
-                  <div className="text-sm text-gray-500 mb-2">Recipe Summary</div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Coffee: <span className="font-bold">{selectedRecipe.coffeeWeight}g</span></div>
-                    <div>Water: <span className="font-bold">{selectedRecipe.waterWeight}g</span></div>
-                    <div>Ratio: <span className="font-bold">1:{selectedRecipe.ratio}</span></div>
-                    <div>Pours: <span className="font-bold">{selectedRecipe.pours}</span></div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="text-sm text-gray-500 mb-2">Step Breakdown</div>
-                    <div className="space-y-1 text-sm">
-                      {selectedRecipe.steps.map((step, index) => (
-                        step.type !== 'drawdown' && (
-                          <div key={step.id} className="flex justify-between">
-                            <span className="capitalize">{step.type} {index > 0 ? index : ''}</span>
-                            <span className="font-medium">{step.targetWeight}g</span>
-                          </div>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleReset}>
-                Back
-              </Button>
-              <Button onClick={startBrewing}>
-                Start Brewing
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-
-      {selectedRecipe && isBrewing && (
+      {selectedRecipe && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -329,6 +285,20 @@ export const V60Brewing = () => {
                   </div>
                   
                   <div className="space-y-4">
+                    {!isTimerActive && (
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Label htmlFor="waterWeightBrewing">Total Water Weight: </Label>
+                        <Input
+                          id="waterWeightBrewing"
+                          type="number"
+                          value={customWaterWeight}
+                          onChange={handleCustomWaterChange}
+                          min={100}
+                          className="w-24"
+                        />               
+                        <span>g</span>   
+                      </div>
+                    )}
                     <div className="text-center font-medium">
                       <div className="flex justify-between items-center px-2 py-3 bg-gray-50 dark:bg-gray-800 rounded-md">
                         <div>

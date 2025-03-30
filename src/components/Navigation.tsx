@@ -14,7 +14,7 @@ export const Navigation = () => {
   
   const navItems: NavItem[] = [
     { label: 'Grind Calculator', href: '/' },
-    { label: 'V60 Brewing Guide', href: '/v60' },
+    { label: 'Pour-Over Brewing Guide', href: '/pour-over' },
   ];
   
   return (

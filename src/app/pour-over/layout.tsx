@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-export default function V60Layout({
+export default function PourOverLayout({
   children,
 }: {
   children: React.ReactNode;
