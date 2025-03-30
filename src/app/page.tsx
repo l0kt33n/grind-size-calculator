@@ -26,13 +26,6 @@ export default function Home() {
   return (
     <main className="container mx-auto p-4">
       <h1 className="text-3xl font-bold text-center mb-8">Coffee Grinder Size Calculator</h1>
-      
-      <div className="flex justify-center mb-8">
-        <Link href="/pour-over">
-          <Button className="text-lg px-6 py-2">Pour-Over Brewing Guide</Button>
-        </Link>
-      </div>
-      
       <GrinderCalculator />
     </main>
   )
