@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Recipe, Step } from '@/types/recipe';
-import { formatTime, calculateRecipeWithCustomWater, predefinedRecipes, createCustomRecipe } from '@/lib/recipe-utils';
+import { formatTime, calculateRecipeWithCustomWater, predefinedRecipes } from '@/lib/recipe-utils';
 import { Timer } from './ui/timer';
 import { StepDisplay } from './ui/step-display';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { debounce } from 'lodash';
@@ -24,7 +23,7 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
   const [totalWaterPoured, setTotalWaterPoured] = useState<number>(0);
   const [currentStep, setCurrentStep] = useState<Step | null>(null);
   const [currentStepWaterTarget, setCurrentStepWaterTarget] = useState<number>(0);
-  const [waterForCurrentStep, setWaterForCurrentStep] = useState<number>(0);
+  const [, setWaterForCurrentStep] = useState<number>(0);
   const [nextStepTime, setNextStepTime] = useState<string>('');
   const [customWaterWeight, setCustomWaterWeight] = useState<number>(0);
   const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
@@ -174,11 +173,6 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
     if (!isNaN(value) && value >= 100) {
       debouncedApplyCustomWater(value);
     }
-  };
-
-  // Reset brewing state and go back to recipe selection
-  const handleReset = () => {
-    router.push('/pour-over');
   };
 
   // Get water status display values

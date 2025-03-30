@@ -14,7 +14,6 @@ interface StepDisplayProps {
 export const StepDisplay = ({
   step,
   currentTimeInSeconds,
-  totalWaterPoured,
   className = '',
 }: StepDisplayProps) => {
   const getStepStatusClass = () => {

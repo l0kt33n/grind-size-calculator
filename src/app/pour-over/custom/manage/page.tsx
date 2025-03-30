@@ -34,12 +34,6 @@ export default function ManageCustomRecipesPage() {
     }
   }, []);
 
-  const handleEdit = (recipeId: string) => {
-    // In the future, implement editing functionality
-    // For now, just redirect to create new
-    router.push('/pour-over/custom');
-  };
-
   const handleDelete = (recipeId: string) => {
     const updatedRecipes = customRecipes.filter(r => r.id !== recipeId);
     setCustomRecipes(updatedRecipes);
@@ -73,7 +67,7 @@ export default function ManageCustomRecipesPage() {
 
       {customRecipes.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">You haven't created any custom recipes yet.</p>
+          <p className="text-gray-500 mb-4">You haven&apos;t created any custom recipes yet.</p>
           <Button onClick={() => router.push('/pour-over/custom')}>
             Create Your First Recipe
           </Button>

@@ -3,9 +3,8 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, ControllerRenderProps, FieldPath } from "react-hook-form";
+import { useForm, ControllerRenderProps } from "react-hook-form";
 import * as z from "zod";
-import { v4 as uuidv4 } from "uuid";
 
 import { createCustomRecipe } from "@/lib/recipe-utils";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,7 @@ export default function CustomRecipePage() {
     },
   });
 
-  const { watch, setValue } = form;
+  const { watch } = form;
   const coffeeWeight = watch("coffeeWeight");
   const ratio = watch("ratio");
   const pours = watch("pours");
