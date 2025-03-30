@@ -8,13 +8,13 @@ export const metadata: Metadata = {
 }
 
 interface BrewingPageProps {
-  params: {
+  params: Promise<{
     recipeId: string;
-  }
+  }>
 }
 
-export default function BrewingPage({ params }: BrewingPageProps) {
-  const { recipeId } = params;
+export default async function BrewingPage({ params }: BrewingPageProps) {
+  const { recipeId } = await params;
   
   return (
     <main className="container mx-auto p-4">
