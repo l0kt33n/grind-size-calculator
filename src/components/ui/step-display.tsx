@@ -36,14 +36,7 @@ export const StepDisplay = ({
       return { text: 'Draining...', class: 'text-gray-500' };
     }
 
-    const diff = Math.abs(step.targetWeight - totalWaterPoured);
-    if (diff <= 2) {
-      return { text: 'Perfect!', class: 'text-green-500 font-bold' };
-    } else if (totalWaterPoured < step.targetWeight) {
-      return { text: `Add ${step.targetWeight - totalWaterPoured}g more`, class: 'text-orange-500' };
-    } else {
-      return { text: `${totalWaterPoured - step.targetWeight}g over target`, class: 'text-red-500' };
-    }
+    return { text: `Target: ${step.targetWeight}g`, class: 'text-blue-500' };
   };
 
   const waterStatus = getWaterStatus();
@@ -63,9 +56,6 @@ export const StepDisplay = ({
         </div>
         
         <div className="flex justify-between items-center">
-          <div>
-            Target: <span className="font-bold">{step.targetWeight}g</span>
-          </div>
           <div className={waterStatus.class}>
             {waterStatus.text}
           </div>

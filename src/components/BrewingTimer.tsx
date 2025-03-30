@@ -171,21 +171,19 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
 
   // Get water status display values
   const getWaterStatus = () => {
-    if (!currentStep) return { currentAmount: 0, targetAmount: 0, progressPercent: 0 };
+    if (!currentStep) return { targetAmount: 0, progressPercent: 0 };
 
     if (currentStep.type === 'drawdown') {
       // For drawdown step, show total water and recipe total
       return {
-        currentAmount: totalWaterPoured,
         targetAmount: selectedRecipe?.waterWeight || 0,
         progressPercent: Math.round((totalWaterPoured / (selectedRecipe?.waterWeight || 1)) * 100)
       };
     } else {
       // For active steps, show current step water and target
       return {
-        currentAmount: waterForCurrentStep,
         targetAmount: currentStepWaterTarget,
-        progressPercent: Math.round((waterForCurrentStep / (currentStepWaterTarget || 1)) * 100)
+        progressPercent: Math.round((totalWaterPoured / (currentStepWaterTarget || 1)) * 100)
       };
     }
   };
@@ -197,7 +195,7 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex justify-center">
       {selectedRecipe && (
         <Card className="w-1/2">
           <CardHeader>
@@ -227,10 +225,6 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
               
               <div className="bg-gray-50 dark:bg-gray-800 rounded-md px-2 py-3">
                 <div className="flex justify-around">
-                  <div>
-                    <span className="text-sm text-gray-500">Current Pour</span>
-                    <div className="text-xl font-bold">{waterStatus.currentAmount}g</div>
-                  </div>
                   <div>
                     <span className="text-sm text-gray-500">Step Target</span>
                     <div className="text-xl font-bold">{waterStatus.targetAmount}g</div>
@@ -265,14 +259,6 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
                   ))}
               </div>
             </div>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleReset}
-              className="w-full"
-            >
-              Exit Brewing
-            </Button>
           </CardContent>
         </Card>
       )}
