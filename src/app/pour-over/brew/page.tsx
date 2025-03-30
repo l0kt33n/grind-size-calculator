@@ -1,4 +1,4 @@
-import { BrewingTimer } from '@/components/BrewingTimer'
+import { redirect } from 'next/navigation';
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -7,10 +7,7 @@ export const metadata: Metadata = {
   keywords: ['pour over', 'coffee brewing', 'timer', 'v60', 'chemex', 'kalita'],
 }
 
-export default function BrewingPage() {
-  return (
-    <main className="container mx-auto p-4">
-      <BrewingTimer />
-    </main>
-  )
+export default function BrewingRedirectPage() {
+  redirect('/pour-over');
+  return null;
 } 

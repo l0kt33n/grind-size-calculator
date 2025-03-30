@@ -13,16 +13,14 @@ export const RecipeSelection = () => {
   const [isCustomFormVisible, setIsCustomFormVisible] = useState<boolean>(false);
 
   const handleRecipeSelect = (recipe: Recipe) => {
-    // Store recipe in localStorage and navigate to brewing page
-    localStorage.setItem('selectedRecipe', JSON.stringify(recipe));
-    router.push('/pour-over/brew');
+    // Navigate to brewing page with recipeId as URL parameter
+    router.push(`/pour-over/brew/${recipe.id}`);
   };
 
   const handleCreateCustomRecipe = (params: CustomRecipeParams) => {
     const newRecipe = createCustomRecipe(params);
-    // Store recipe in localStorage and navigate to brewing page
-    localStorage.setItem('selectedRecipe', JSON.stringify(newRecipe));
-    router.push('/pour-over/brew');
+    // Navigate to brewing page with recipeId as URL parameter
+    router.push(`/pour-over/brew/${newRecipe.id}`);
   };
 
   return (

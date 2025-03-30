@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Recipe, Step } from '@/types/recipe';
-import { formatTime, calculateRecipeWithCustomWater } from '@/lib/recipe-utils';
+import { formatTime, calculateRecipeWithCustomWater, predefinedRecipes, createCustomRecipe } from '@/lib/recipe-utils';
 import { Timer } from './ui/timer';
 import { StepDisplay } from './ui/step-display';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -12,7 +12,11 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { debounce } from 'lodash';
 
-export const BrewingTimer = () => {
+interface BrewingTimerProps {
+  recipeId: string;
+}
+
+export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
   const router = useRouter();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [originalRecipe, setOriginalRecipe] = useState<Recipe | null>(null);
@@ -26,36 +30,32 @@ export const BrewingTimer = () => {
   const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load the recipe from localStorage on component mount
+  // Load the recipe from recipeId on component mount
   useEffect(() => {
-    const storedRecipe = localStorage.getItem('selectedRecipe');
-    
-    if (storedRecipe) {
-      try {
-        const recipe = JSON.parse(storedRecipe) as Recipe;
-        setOriginalRecipe(recipe);
-        setSelectedRecipe(recipe);
-        setCurrentTimeInSeconds(0);
-        setTotalWaterPoured(0);
-        setCurrentStepWaterTarget(recipe.steps[0].targetWeight);
-        setWaterForCurrentStep(0);
-        setCustomWaterWeight(recipe.waterWeight);
-        setCurrentStep(recipe.steps[0]);
-        
-        if (recipe.steps.length > 1) {
-          setNextStepTime(recipe.steps[1].targetTime);
-        }
-      } catch (error) {
-        console.error('Failed to parse stored recipe:', error);
-        router.push('/pour-over');
+    // Find recipe by ID from predefined recipes
+    const recipe = predefinedRecipes.find(r => r.id === recipeId);
+
+    if (recipe) {
+      setOriginalRecipe(recipe);
+      setSelectedRecipe(recipe);
+      setCurrentTimeInSeconds(0);
+      setTotalWaterPoured(0);
+      setCurrentStepWaterTarget(recipe.steps[0].targetWeight);
+      setWaterForCurrentStep(0);
+      setCustomWaterWeight(recipe.waterWeight);
+      setCurrentStep(recipe.steps[0]);
+
+      if (recipe.steps.length > 1) {
+        setNextStepTime(recipe.steps[1].targetTime);
       }
     } else {
-      // Redirect to recipe selection if no recipe found
+      // If not found in predefined recipes, it might be a custom recipe
+      // We'll keep this simple for now and just redirect
       router.push('/pour-over');
     }
-    
+
     setIsLoading(false);
-  }, [router]);
+  }, [recipeId, router]);
 
   // Get the current step based on timer
   useEffect(() => {
@@ -100,19 +100,19 @@ export const BrewingTimer = () => {
     // Calculate total water poured based on completed steps
     let calculatedWaterPoured = 0;
     let waterInCurrentStep = 0;
-    
+
     // Add water from completed steps (all steps before the current one)
     for (let i = 0; i < currentStepIndex; i++) {
       if (steps[i].type !== 'drawdown') {
         calculatedWaterPoured += steps[i].targetWeight;
       }
     }
-    
+
     // Add water from current step if not drawdown
     if (currentStep && currentStep.type !== 'drawdown') {
       // Set current step target
       setCurrentStepWaterTarget(currentStep.targetWeight);
-      
+
       if (currentTimeInSeconds >= currentStep.targetTimeInSeconds + 10) {
         // If we're more than 10 seconds into the current step, assume all water is poured
         waterInCurrentStep = currentStep.targetWeight;
@@ -123,14 +123,14 @@ export const BrewingTimer = () => {
         waterInCurrentStep = Math.round(currentStep.targetWeight * stepProgress);
         calculatedWaterPoured += waterInCurrentStep;
       }
-      
+
       setWaterForCurrentStep(waterInCurrentStep);
     } else {
       // For drawdown step, show the total water as target
       setCurrentStepWaterTarget(0);
       setWaterForCurrentStep(0);
     }
-    
+
     setTotalWaterPoured(calculatedWaterPoured);
   }, [currentTimeInSeconds, selectedRecipe, currentStep]);
 
@@ -145,7 +145,7 @@ export const BrewingTimer = () => {
   };
 
   // Create debounced version of applyCustomWater
-  const debouncedApplyCustomWater = 
+  const debouncedApplyCustomWater =
     debounce((weight: number) => {
       if (weight >= 100 && originalRecipe) {
         const customizedRecipe = calculateRecipeWithCustomWater(originalRecipe, {
@@ -166,14 +166,13 @@ export const BrewingTimer = () => {
 
   // Reset brewing state and go back to recipe selection
   const handleReset = () => {
-    localStorage.removeItem('selectedRecipe');
     router.push('/pour-over');
   };
 
   // Get water status display values
   const getWaterStatus = () => {
     if (!currentStep) return { currentAmount: 0, targetAmount: 0, progressPercent: 0 };
-    
+
     if (currentStep.type === 'drawdown') {
       // For drawdown step, show total water and recipe total
       return {
@@ -200,95 +199,82 @@ export const BrewingTimer = () => {
   return (
     <div className="space-y-6">
       {selectedRecipe && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{selectedRecipe.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-8">
-                <div className="flex-1">
-                  <div className="mb-6">
-                    <Timer 
-                      initialTimeInSeconds={0} 
-                      targetTime={nextStepTime}
-                      onTimeUpdate={handleTimeUpdate}
-                    />
+        <Card className="w-1/2">
+          <CardHeader>
+            <CardTitle>{selectedRecipe.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="waterWeightBrewing">Total Water Weight: </Label>
+                <Input
+                  id="waterWeightBrewing"
+                  type="number"
+                  value={customWaterWeight}
+                  onChange={handleCustomWaterChange}
+                  min={100}
+                  className="w-24"
+                  disabled={isTimerActive}
+                />
+                <span>g</span>
+              </div>
+              
+              <Timer
+                initialTimeInSeconds={0}
+                targetTime={nextStepTime}
+                onTimeUpdate={handleTimeUpdate}
+              />
+              
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-md px-2 py-3">
+                <div className="flex justify-around">
+                  <div>
+                    <span className="text-sm text-gray-500">Current Pour</span>
+                    <div className="text-xl font-bold">{waterStatus.currentAmount}g</div>
                   </div>
-                  
-                  <div className="space-y-4">
-                    {!isTimerActive && (
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Label htmlFor="waterWeightBrewing">Total Water Weight: </Label>
-                        <Input
-                          id="waterWeightBrewing"
-                          type="number"
-                          value={customWaterWeight}
-                          onChange={handleCustomWaterChange}
-                          min={100}
-                          className="w-24"
-                        />               
-                        <span>g</span>   
-                      </div>
-                    )}
-                    <div className="text-center font-medium">
-                      <div className="flex justify-between items-center px-2 py-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                        <div>
-                          <span className="text-sm text-gray-500">Current Pour</span>
-                          <div className="text-xl font-bold">{waterStatus.currentAmount}g</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-500">Step Target</span>
-                          <div className="text-xl font-bold">{waterStatus.targetAmount}g</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-500">Total Water</span>
-                          <div className="text-xl font-bold">{totalWaterPoured}g / {selectedRecipe.waterWeight}g</div>
-                        </div>
-                      </div>
-                    </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Step Target</span>
+                    <div className="text-xl font-bold">{waterStatus.targetAmount}g</div>
                   </div>
-                </div>
-                
-                <div className="flex-1">
-                  {currentStep && (
-                    <StepDisplay
-                      step={currentStep}
-                      currentTimeInSeconds={currentTimeInSeconds}
-                      totalWaterPoured={totalWaterPoured}
-                      className="mb-4"
-                    />
-                  )}
-                  
-                  <div className="text-sm space-y-2 mt-4">
-                    <div className="font-medium">Upcoming Steps:</div>
-                    <div className="space-y-1">
-                      {selectedRecipe.steps
-                        .filter(step => step.targetTimeInSeconds > currentTimeInSeconds)
-                        .slice(0, 2)
-                        .map(step => (
-                          <div key={step.id} className="flex justify-between text-gray-600">
-                            <span className="capitalize">{step.type} ({step.targetWeight}g)</span>
-                            <span>{step.targetTime}</span>
-                          </div>
-                        ))}
-                    </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Total Water</span>
+                    <div className="text-xl font-bold">{totalWaterPoured}g / {selectedRecipe.waterWeight}g</div>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex justify-center">
+            </div>
+
+            {currentStep && (
+              <StepDisplay
+                step={currentStep}
+                currentTimeInSeconds={currentTimeInSeconds}
+                totalWaterPoured={totalWaterPoured}
+              />
+            )}
+
+            <div className="text-sm space-y-2">
+              <div className="font-medium">Upcoming Steps:</div>
+              <div className="space-y-1">
+                {selectedRecipe.steps
+                  .filter(step => step.targetTimeInSeconds > currentTimeInSeconds)
+                  .slice(0, 2)
+                  .map(step => (
+                    <div key={step.id} className="flex justify-between text-gray-600">
+                      <span className="capitalize">{step.type} ({step.targetWeight}g)</span>
+                      <span>{step.targetTime}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            
             <Button 
               variant="outline" 
               onClick={handleReset}
-              className="w-full max-w-md"
+              className="w-full"
             >
               Exit Brewing
             </Button>
-          </div>
-        </>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
