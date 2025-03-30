@@ -1,26 +1,38 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Recipe, CustomRecipeParams } from '@/types/recipe';
-import { predefinedRecipes, createCustomRecipe } from '@/lib/recipe-utils';
-import { RecipeForm } from './ui/recipe-form';
+import { Recipe } from '@/types/recipe';
+import { predefinedRecipes } from '@/lib/recipe-utils';
 import { RecipeCard } from './ui/recipe-card';
 import { Button } from './ui/button';
 
 export const RecipeSelection = () => {
   const router = useRouter();
-  const [isCustomFormVisible, setIsCustomFormVisible] = useState<boolean>(false);
+  const [customRecipes, setCustomRecipes] = useState<Recipe[]>([]);
+
+  // Load custom recipes from localStorage when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedRecipes = localStorage.getItem('customRecipes');
+      if (savedRecipes) {
+        setCustomRecipes(JSON.parse(savedRecipes));
+      }
+    }
+  }, []);
 
   const handleRecipeSelect = (recipe: Recipe) => {
     // Navigate to brewing page with recipeId as URL parameter
     router.push(`/pour-over/brew/${recipe.id}`);
   };
 
-  const handleCreateCustomRecipe = (params: CustomRecipeParams) => {
-    const newRecipe = createCustomRecipe(params);
-    // Navigate to brewing page with recipeId as URL parameter
-    router.push(`/pour-over/brew/${newRecipe.id}`);
+  const handleCreateCustomRecipe = () => {
+    // Navigate to the new custom recipe creation page
+    router.push('/pour-over/custom');
+  };
+
+  const handleManageCustomRecipes = () => {
+    router.push('/pour-over/custom/manage');
   };
 
   return (
@@ -30,8 +42,10 @@ export const RecipeSelection = () => {
         <p className="text-gray-600 mb-6">Select a recipe or create your own to start brewing</p>
       </div>
 
-      {!isCustomFormVisible ? (
-        <div className="space-y-6">
+      <div className="space-y-8">
+        {/* Predefined Recipes */}
+        <div>
+          <h3 className="text-xl font-semibold mb-4">Standard Recipes</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {predefinedRecipes.map((recipe) => (
               <RecipeCard 
@@ -41,31 +55,42 @@ export const RecipeSelection = () => {
               />
             ))}
           </div>
-          
-          <div className="flex justify-center mt-6">
-            <Button 
-              className="w-full max-w-md" 
-              onClick={() => setIsCustomFormVisible(true)}
-            >
-              Create Custom Recipe
-            </Button>
-          </div>
         </div>
-      ) : (
-        <div className="max-w-md mx-auto w-full">
-          <RecipeForm 
-            onCreateRecipe={handleCreateCustomRecipe} 
-            className="mb-4"
-          />
+        
+        {/* Custom Recipes */}
+        {customRecipes.length > 0 && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Your Custom Recipes</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleManageCustomRecipes}
+              >
+                Manage Recipes
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customRecipes.map((recipe) => (
+                <RecipeCard 
+                  key={recipe.id} 
+                  recipe={recipe} 
+                  onSelect={handleRecipeSelect} 
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-center mt-6">
           <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={() => setIsCustomFormVisible(false)}
+            className="w-full max-w-md" 
+            onClick={handleCreateCustomRecipe}
           >
-            Back to Recipes
+            Create Custom Recipe
           </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }; 

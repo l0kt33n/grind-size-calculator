@@ -32,8 +32,21 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
 
   // Load the recipe from recipeId on component mount
   useEffect(() => {
-    // Find recipe by ID from predefined recipes
-    const recipe = predefinedRecipes.find(r => r.id === recipeId);
+    // First, find recipe by ID from predefined recipes
+    let recipe = predefinedRecipes.find(r => r.id === recipeId);
+
+    // If not found in predefined recipes, try to find in custom recipes from localStorage
+    if (!recipe && typeof window !== 'undefined') {
+      const customRecipesStr = localStorage.getItem('customRecipes');
+      if (customRecipesStr) {
+        try {
+          const customRecipes = JSON.parse(customRecipesStr);
+          recipe = customRecipes.find((r: Recipe) => r.id === recipeId);
+        } catch (error) {
+          console.error('Error parsing custom recipes:', error);
+        }
+      }
+    }
 
     if (recipe) {
       setOriginalRecipe(recipe);
@@ -49,8 +62,7 @@ export const BrewingTimer = ({ recipeId }: BrewingTimerProps) => {
         setNextStepTime(recipe.steps[1].targetTime);
       }
     } else {
-      // If not found in predefined recipes, it might be a custom recipe
-      // We'll keep this simple for now and just redirect
+      // If not found in predefined or custom recipes, redirect
       router.push('/pour-over');
     }
 
