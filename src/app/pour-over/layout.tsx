@@ -8,15 +8,6 @@ export default function PourOverLayout({
 }) {
   return (
     <section>
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-8">
-          <Link href="/">
-            <Button variant="outline" className="text-sm">
-              &larr; Back to Calculator
-            </Button>
-          </Link>
-        </div>
-      </div>
       {children}
     </section>
   );

@@ -1,35 +1,65 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Recipe, Step, CustomRecipeParams, CustomizationOptions } from '@/types/recipe';
-import { predefinedRecipes, createCustomRecipe, formatTime, calculateRecipeWithCustomWater } from '@/lib/recipe-utils';
+import { useRouter } from 'next/navigation';
+import { Recipe, Step } from '@/types/recipe';
+import { formatTime, calculateRecipeWithCustomWater } from '@/lib/recipe-utils';
 import { Timer } from './ui/timer';
 import { StepDisplay } from './ui/step-display';
-import { RecipeForm } from './ui/recipe-form';
-import { RecipeCard } from './ui/recipe-card';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { debounce } from 'lodash';
 
-export const PourOverBrewing = () => {
+export const BrewingTimer = () => {
+  const router = useRouter();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [originalRecipe, setOriginalRecipe] = useState<Recipe | null>(null);
   const [currentTimeInSeconds, setCurrentTimeInSeconds] = useState<number>(0);
   const [totalWaterPoured, setTotalWaterPoured] = useState<number>(0);
   const [currentStep, setCurrentStep] = useState<Step | null>(null);
-  const [isCustomFormVisible, setIsCustomFormVisible] = useState<boolean>(false);
-  const [isBrewing, setIsBrewing] = useState<boolean>(false);
-  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
   const [currentStepWaterTarget, setCurrentStepWaterTarget] = useState<number>(0);
   const [waterForCurrentStep, setWaterForCurrentStep] = useState<number>(0);
   const [nextStepTime, setNextStepTime] = useState<string>('');
   const [customWaterWeight, setCustomWaterWeight] = useState<number>(0);
+  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Load the recipe from localStorage on component mount
+  useEffect(() => {
+    const storedRecipe = localStorage.getItem('selectedRecipe');
+    
+    if (storedRecipe) {
+      try {
+        const recipe = JSON.parse(storedRecipe) as Recipe;
+        setOriginalRecipe(recipe);
+        setSelectedRecipe(recipe);
+        setCurrentTimeInSeconds(0);
+        setTotalWaterPoured(0);
+        setCurrentStepWaterTarget(recipe.steps[0].targetWeight);
+        setWaterForCurrentStep(0);
+        setCustomWaterWeight(recipe.waterWeight);
+        setCurrentStep(recipe.steps[0]);
+        
+        if (recipe.steps.length > 1) {
+          setNextStepTime(recipe.steps[1].targetTime);
+        }
+      } catch (error) {
+        console.error('Failed to parse stored recipe:', error);
+        router.push('/pour-over');
+      }
+    } else {
+      // Redirect to recipe selection if no recipe found
+      router.push('/pour-over');
+    }
+    
+    setIsLoading(false);
+  }, [router]);
 
   // Get the current step based on timer
   useEffect(() => {
-    if (!selectedRecipe || !isBrewing) return;
+    if (!selectedRecipe) return;
 
     const steps = selectedRecipe.steps;
     let foundCurrentStep = false;
@@ -102,7 +132,7 @@ export const PourOverBrewing = () => {
     }
     
     setTotalWaterPoured(calculatedWaterPoured);
-  }, [currentTimeInSeconds, selectedRecipe, isBrewing, currentStep]);
+  }, [currentTimeInSeconds, selectedRecipe, currentStep]);
 
   // Handle timer updates
   const handleTimeUpdate = (timeInSeconds: number) => {
@@ -111,42 +141,6 @@ export const PourOverBrewing = () => {
       setIsTimerActive(true);
     } else {
       setIsTimerActive(false);
-    }
-  };
-
-  // Handle recipe selection
-  const handleRecipeSelect = (recipe: Recipe) => {
-    setOriginalRecipe(recipe);
-    setSelectedRecipe(recipe);
-    setCurrentTimeInSeconds(0);
-    setTotalWaterPoured(0);
-    setCurrentStepWaterTarget(recipe.steps[0].targetWeight);
-    setWaterForCurrentStep(0);
-    setCustomWaterWeight(recipe.waterWeight);
-    setIsBrewing(true);
-    setCurrentStep(recipe.steps[0]);
-    
-    if (recipe.steps.length > 1) {
-      setNextStepTime(recipe.steps[1].targetTime);
-    }
-  };
-
-  // Handle custom recipe creation
-  const handleCreateCustomRecipe = (params: CustomRecipeParams) => {
-    const newRecipe = createCustomRecipe(params);
-    setOriginalRecipe(newRecipe);
-    setSelectedRecipe(newRecipe);
-    setIsCustomFormVisible(false);
-    setCurrentTimeInSeconds(0);
-    setTotalWaterPoured(0);
-    setCurrentStepWaterTarget(newRecipe.steps[0].targetWeight);
-    setWaterForCurrentStep(0);
-    setCustomWaterWeight(newRecipe.waterWeight);
-    setIsBrewing(true);
-    setCurrentStep(newRecipe.steps[0]);
-    
-    if (newRecipe.steps.length > 1) {
-      setNextStepTime(newRecipe.steps[1].targetTime);
     }
   };
 
@@ -172,30 +166,10 @@ export const PourOverBrewing = () => {
     }
   };
 
-  // Start brewing with the selected recipe
-  const startBrewing = () => {
-    if (!selectedRecipe) return;
-    
-    setIsBrewing(true);
-    setCurrentStep(selectedRecipe.steps[0]);
-    
-    if (selectedRecipe.steps.length > 1) {
-      setNextStepTime(selectedRecipe.steps[1].targetTime);
-    }
-  };
-
-  // Reset brewing state
+  // Reset brewing state and go back to recipe selection
   const handleReset = () => {
-    setSelectedRecipe(null);
-    setOriginalRecipe(null);
-    setCurrentTimeInSeconds(0);
-    setTotalWaterPoured(0);
-    setCurrentStepWaterTarget(0);
-    setWaterForCurrentStep(0);
-    setNextStepTime('');
-    setIsBrewing(false);
-    setIsTimerActive(false);
-    setCurrentStep(null);
+    localStorage.removeItem('selectedRecipe');
+    router.push('/pour-over');
   };
 
   // Get water status display values
@@ -221,54 +195,14 @@ export const PourOverBrewing = () => {
 
   const waterStatus = getWaterStatus();
 
+  if (isLoading) {
+    return <div className="text-center py-8">Loading...</div>;
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-4">Pour-Over Coffee Timer</h2>
-        <p className="text-gray-600 mb-6">Select a recipe or create your own to start brewing</p>
-      </div>
-
-      {!selectedRecipe && !isCustomFormVisible && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {predefinedRecipes.map((recipe) => (
-              <RecipeCard 
-                key={recipe.id} 
-                recipe={recipe} 
-                onSelect={handleRecipeSelect} 
-              />
-            ))}
-          </div>
-          
-          <div className="flex justify-center mt-6">
-            <Button 
-              className="w-full max-w-md" 
-              onClick={() => setIsCustomFormVisible(true)}
-            >
-              Create Custom Recipe
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {isCustomFormVisible && !selectedRecipe && (
-        <div className="max-w-md mx-auto w-full">
-          <RecipeForm 
-            onCreateRecipe={handleCreateCustomRecipe} 
-            className="mb-4"
-          />
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={() => setIsCustomFormVisible(false)}
-          >
-            Back to Recipes
-          </Button>
-        </div>
-      )}
-
+    <div className="space-y-6">
       {selectedRecipe && (
-        <div className="space-y-6">
+        <>
           <Card>
             <CardHeader>
               <CardTitle>{selectedRecipe.name}</CardTitle>
@@ -356,7 +290,7 @@ export const PourOverBrewing = () => {
               Exit Brewing
             </Button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

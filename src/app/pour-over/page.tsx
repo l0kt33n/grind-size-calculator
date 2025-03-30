@@ -1,4 +1,4 @@
-import { PourOverBrewing } from '@/components/PourOverBrewing'
+import { RecipeSelection } from '@/components/RecipeSelection'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function PourOverPage() {
   return (
     <main className="container mx-auto p-4">
-      <PourOverBrewing />
+      <RecipeSelection />
     </main>
   )
 } 
