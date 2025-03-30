@@ -32,7 +32,8 @@ export const createStep = (
   targetTimeInSeconds: number,
   targetWeight: number,
   targetRatio: number,
-  instruction: string
+  instruction: string,
+  description?: string
 ): Step => {
   return {
     id: uuidv4(),
@@ -42,6 +43,7 @@ export const createStep = (
     targetWeight,
     targetRatio,
     instruction,
+    description,
   };
 };
 
@@ -54,7 +56,9 @@ export const createCustomRecipe = (params: CustomRecipeParams): Recipe => {
     bloomMultiplier = 3, 
     mode = 'basic', 
     inputMode = 'coffee',
-    totalBrewTimeSeconds = DEFAULT_BLOOM_TIME + (pours * (DEFAULT_POUR_TIME + DEFAULT_INTERVAL_BETWEEN_POURS)) + DEFAULT_DRAWDOWN_TIME
+    totalBrewTimeSeconds = DEFAULT_BLOOM_TIME + (pours * (DEFAULT_POUR_TIME + DEFAULT_INTERVAL_BETWEEN_POURS)) + DEFAULT_DRAWDOWN_TIME,
+    waterTemperature,
+    temperatureUnit = 'C'
   } = params;
   
   // Calculate coffee/water weights based on inputMode
@@ -86,7 +90,9 @@ export const createCustomRecipe = (params: CustomRecipeParams): Recipe => {
       bloomWater,
       bloomRatio,
       pours,
-      totalBrewTimeSeconds
+      totalBrewTimeSeconds,
+      waterTemperature,
+      temperatureUnit
     });
   } else if (mode === 'advanced' && params.advancedSteps) {
     // Advanced mode with custom pour steps
@@ -117,7 +123,9 @@ export const createCustomRecipe = (params: CustomRecipeParams): Recipe => {
     steps,
     totalBrewTime,
     mode,
-    inputMode
+    inputMode,
+    waterTemperature,
+    temperatureUnit
   };
 };
 
@@ -198,7 +206,9 @@ const createBasicModeSteps = ({
   bloomWater,
   bloomRatio,
   pours,
-  totalBrewTimeSeconds
+  totalBrewTimeSeconds,
+  waterTemperature,
+  temperatureUnit
 }: {
   coffeeWeight: number;
   waterWeight: number;
@@ -206,6 +216,8 @@ const createBasicModeSteps = ({
   bloomRatio: number;
   pours: number;
   totalBrewTimeSeconds: number;
+  waterTemperature?: number;
+  temperatureUnit?: string;
 }): Step[] => {
   const steps: Step[] = [];
   
@@ -221,6 +233,9 @@ const createBasicModeSteps = ({
   const waterPerPour = pours > 0 ? Math.round(remainingWater / pours) : 0;
   const pourRatio = remainingWater / pours / waterWeight; // Ratio to total water
   
+  // Format temperature for instruction text
+  const tempText = waterTemperature ? ` (${waterTemperature}°${temperatureUnit || 'C'})` : '';
+  
   // Add bloom step
   steps.push(
     createStep(
@@ -228,7 +243,8 @@ const createBasicModeSteps = ({
       0, // Start at time 0
       bloomWater,
       bloomRatio,
-      `Pour ${bloomWater}g of water to bloom the coffee grounds`
+      `Pour ${bloomWater}g of water${tempText} to bloom the coffee grounds`,
+      'Ensure all grounds are saturated. Gently swirl if needed.' // Default description for bloom
     )
   );
   
@@ -239,13 +255,16 @@ const createBasicModeSteps = ({
   // Add pour steps with calculated timing
   for (let i = 0; i < pours; i++) {
     currentWater += waterPerPour;
+    const pourNumber = i + 1;
+    
     steps.push(
       createStep(
         'pour',
         currentTime,
         waterPerPour,
         pourRatio,
-        `Pour ${waterPerPour}g of water in a circular motion (total: ${currentWater}g)`
+        `Pour ${waterPerPour}g of water in a circular motion (total: ${currentWater}g)`,
+        `Pour ${pourNumber} of ${pours}: maintain a steady, slow pour rate to evenly extract the coffee.` // Default description for pour
       )
     );
     
@@ -260,7 +279,8 @@ const createBasicModeSteps = ({
       currentTime,
       0,
       0,
-      'Allow remaining water to drain through the coffee bed'
+      'Allow remaining water to drain through the coffee bed',
+      'Total brew time should finish in about 1 minute from drawdown start.' // Default description for drawdown
     )
   );
   

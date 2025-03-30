@@ -51,7 +51,12 @@ export const StepDisplay = ({
         </div>
         
         <div className="mb-4">
-          {step.instruction}
+          <div>{step.instruction}</div>
+          {step.description && (
+            <div className="mt-2 text-sm italic text-gray-600 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+              {step.description}
+            </div>
+          )}
         </div>
         
         <div className="flex justify-between items-center">

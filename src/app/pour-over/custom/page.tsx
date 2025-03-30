@@ -9,6 +9,7 @@ import * as z from "zod";
 import { createCustomRecipe, formatTime, parseTimeToSeconds } from "@/lib/recipe-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -18,8 +19,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Recipe, Step, InputMode, RecipeMode } from "@/types/recipe";
+import { Recipe, Step, InputMode, RecipeMode, TemperatureUnit } from "@/types/recipe";
 import { 
   Tabs, 
   TabsContent, 
@@ -68,8 +76,14 @@ const formSchema = z.object({
       waterAmount: z.coerce.number().min(1, { message: "Water amount is required" }),
       duration: z.coerce.number().min(1, { message: "Duration is required" }),
       isBloom: z.boolean().optional().default(false),
+      description: z.string().optional(),
     })
   ).optional(),
+  waterTemperature: z.coerce
+    .number()
+    .min(0, { message: "Water temperature must be at least 0." })
+    .max(100, { message: "Water temperature must be less than 100°C or 212°F." }),
+  temperatureUnit: z.enum(["C", "F"]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -97,6 +111,8 @@ export default function CustomRecipePage() {
         { waterAmount: 70, duration: 30, isBloom: false },
         { waterAmount: 70, duration: 30, isBloom: false },
       ],
+      waterTemperature: 80,
+      temperatureUnit: "C",
     },
   });
 
@@ -114,6 +130,8 @@ export default function CustomRecipePage() {
   const inputMode = watch("inputMode");
   const mode = watch("mode");
   const advancedSteps = watch("advancedSteps");
+  const waterTemperature = watch("waterTemperature");
+  const temperatureUnit = watch("temperatureUnit");
 
   // Calculate the dependent values based on the input mode
   useEffect(() => {
@@ -150,9 +168,10 @@ export default function CustomRecipePage() {
     }
   }, [inputMode, setValue, coffeeWeight, waterWeight, ratio]);
 
-  // Update advanced steps when changing the number of pours in basic mode
+  // Update advanced steps when values change in basic mode
   useEffect(() => {
-    if (mode === "advanced") return;
+    // Only update if in basic mode
+    if (mode !== "basic") return;
     
     // Calculate standard pour sizes for advanced mode
     const currentCoffeeWeight = inputMode === "coffee" 
@@ -163,13 +182,13 @@ export default function CustomRecipePage() {
       ? calculatedWaterWeight || (currentCoffeeWeight * ratio) 
       : waterWeight || 320;
     
-    const bloomWater = Math.round(currentCoffeeWeight * bloomMultiplier);
-    const remainingWater = currentWaterWeight - bloomWater;
+    const newBloomWater = Math.round(currentCoffeeWeight * bloomMultiplier);
+    const remainingWater = currentWaterWeight - newBloomWater;
     const waterPerPour = pours > 0 ? Math.round(remainingWater / pours) : 0;
     
     // Create new advanced steps based on the current pour settings
     const newAdvancedSteps = [
-      { waterAmount: bloomWater, duration: 45, isBloom: true },
+      { waterAmount: newBloomWater, duration: 45, isBloom: true },
     ];
     
     for (let i = 0; i < pours; i++) {
@@ -212,6 +231,21 @@ export default function CustomRecipePage() {
   // Calculate the water difference based on the current total water
   const waterDifference = totalWater - advancedTotalWater;
 
+  // Helper function to convert between temperature units
+  const convertTemperature = (temp: number, fromUnit: string, toUnit: string): number => {
+    if (fromUnit === toUnit) return temp;
+    if (fromUnit === "C" && toUnit === "F") {
+      return Math.round((temp * 9/5) + 32);
+    } else {
+      return Math.round((temp - 32) * 5/9);
+    }
+  };
+  
+  // Get the equivalent temperature in the other unit
+  const otherUnitTemp = waterTemperature ? 
+    convertTemperature(waterTemperature, temperatureUnit, temperatureUnit === "C" ? "F" : "C") : 
+    0;
+
   function onSubmit(values: FormValues) {
     // Convert totalBrewTime from mm:ss format to seconds
     const totalBrewTimeSeconds = parseTimeToSeconds(values.totalBrewTime);
@@ -240,6 +274,7 @@ export default function CustomRecipePage() {
           instruction: step.isBloom 
             ? `Pour ${step.waterAmount}g of water to bloom the coffee grounds` 
             : `Pour ${step.waterAmount}g of water in a circular motion (total: ${cumulativeWater}g)`,
+          description: step.description || undefined,
         };
       });
       
@@ -266,6 +301,8 @@ export default function CustomRecipePage() {
       inputMode: values.inputMode,
       totalBrewTimeSeconds,
       advancedSteps: advancedStepsForRecipe,
+      waterTemperature: values.waterTemperature,
+      temperatureUnit: values.temperatureUnit,
     });
     
     // Add the custom name to the recipe
@@ -399,6 +436,53 @@ export default function CustomRecipePage() {
                 />
               </div>
               
+              {/* Water Temperature Input */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="waterTemperature"
+                  render={({ field }: { field: ControllerRenderProps<FormValues, "waterTemperature"> }) => (
+                    <FormItem>
+                      <FormLabel>Water Temperature</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        {temperatureUnit === "C" ? 
+                          "Recommended brewing temperature: 88-96°C" : 
+                          "Recommended brewing temperature: 190-205°F"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="temperatureUnit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Temperature Unit</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select unit" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="C">Celsius (°C)</SelectItem>
+                          <SelectItem value="F">Fahrenheit (°F)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
               {/* Display calculated values */}
               {inputMode === "coffee" && (
                 <div className="rounded-md border p-3 bg-slate-50 dark:bg-slate-900">
@@ -411,36 +495,6 @@ export default function CustomRecipePage() {
                   <div className="text-sm font-medium">Coffee Weight: <span className="font-bold">{calculatedCoffeeWeight}g</span></div>
                 </div>
               )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="pours"
-                  render={({ field }: { field: ControllerRenderProps<FormValues, "pours"> }) => (
-                    <FormItem>
-                      <FormLabel>Number of Pours</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="bloomMultiplier"
-                  render={({ field }: { field: ControllerRenderProps<FormValues, "bloomMultiplier"> }) => (
-                    <FormItem>
-                      <FormLabel>Bloom Multiplier</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
               
               {/* Mode Selector - Basic vs Advanced */}
               <div className="space-y-2">
@@ -462,6 +516,36 @@ export default function CustomRecipePage() {
                           </TabsList>
                           
                           <TabsContent value="basic" className="space-y-4 mt-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="pours"
+                                render={({ field }: { field: ControllerRenderProps<FormValues, "pours"> }) => (
+                                  <FormItem>
+                                    <FormLabel>Number of Pours</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={form.control}
+                                name="bloomMultiplier"
+                                render={({ field }: { field: ControllerRenderProps<FormValues, "bloomMultiplier"> }) => (
+                                  <FormItem>
+                                    <FormLabel>Bloom Multiplier</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" step="0.1" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
                             <FormField
                               control={form.control}
                               name="totalBrewTime"
@@ -484,7 +568,7 @@ export default function CustomRecipePage() {
                               <div className="space-y-2 text-sm">
                                 <div className="p-2 border rounded-md bg-white dark:bg-slate-800">
                                   <div className="font-semibold">Step 1 (Bloom)</div>
-                                  <div>Pour {bloomWater}g of water to bloom the coffee grounds</div>
+                                  <div>Pour {bloomWater}g of water ({waterTemperature || 0}°{temperatureUnit}) to bloom the coffee grounds</div>
                                   <div className="text-slate-500">Wait 45 seconds</div>
                                 </div>
                                 
@@ -534,6 +618,11 @@ export default function CustomRecipePage() {
                                 </Button>
                               </div>
                               
+                              <div className="text-sm text-slate-500 mb-4">
+                                Define your custom pour steps with specific water amounts and durations.
+                                The first step is automatically set as the bloom.
+                              </div>
+                              
                               <div className="space-y-4">
                                 {fields.map((field, index) => {
                                   // Set the first field as bloom by default
@@ -547,45 +636,56 @@ export default function CustomRecipePage() {
                                   }
                                   
                                   return (
-                                    <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md bg-slate-50 dark:bg-slate-900">
-                                      <div className="flex-1">
-                                        <FormLabel className={`text-xs ${index === 0 ? "text-blue-600" : ""}`}>
-                                          {index === 0 ? "Bloom Water (g)" : "Water (g)"}
-                                        </FormLabel>
-                                        <Input
-                                          type="number"
-                                          {...form.register(`advancedSteps.${index}.waterAmount` as const, {
-                                            valueAsNumber: true,
-                                          })}
+                                    <div key={field.id} className="flex flex-col gap-2 p-3 border rounded-md bg-slate-50 dark:bg-slate-900">
+                                      <div className="flex items-end gap-2">
+                                        <div className="flex-1">
+                                          <FormLabel className={`text-xs ${index === 0 ? "text-blue-600" : ""}`}>
+                                            {index === 0 ? "Bloom Water (g)" : "Water (g)"}
+                                          </FormLabel>
+                                          <Input
+                                            type="number"
+                                            {...form.register(`advancedSteps.${index}.waterAmount` as const, {
+                                              valueAsNumber: true,
+                                            })}
+                                          />
+                                        </div>
+                                        
+                                        <div className="flex-1">
+                                          <FormLabel className="text-xs">Duration (sec)</FormLabel>
+                                          <Input
+                                            type="number"
+                                            {...form.register(`advancedSteps.${index}.duration` as const, {
+                                              valueAsNumber: true,
+                                            })}
+                                          />
+                                        </div>
+                                        
+                                        <input 
+                                          type="hidden" 
+                                          {...form.register(`advancedSteps.${index}.isBloom` as const)}
+                                          value={index === 0 ? "true" : "false"}
                                         />
+                                        
+                                        {index > 0 && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => remove(index)}
+                                          >
+                                            <Trash className="h-4 w-4" />
+                                          </Button>
+                                        )}
                                       </div>
                                       
-                                      <div className="flex-1">
-                                        <FormLabel className="text-xs">Duration (sec)</FormLabel>
-                                        <Input
-                                          type="number"
-                                          {...form.register(`advancedSteps.${index}.duration` as const, {
-                                            valueAsNumber: true,
-                                          })}
+                                      <div>
+                                        <FormLabel className="text-xs">Description (optional)</FormLabel>
+                                        <Textarea
+                                          placeholder="Add notes or details about this step..."
+                                          className="resize-none h-20 text-sm"
+                                          {...form.register(`advancedSteps.${index}.description` as const)}
                                         />
                                       </div>
-                                      
-                                      <input 
-                                        type="hidden" 
-                                        {...form.register(`advancedSteps.${index}.isBloom` as const)}
-                                        value={index === 0 ? "true" : "false"}
-                                      />
-                                      
-                                      {index > 0 && (
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => remove(index)}
-                                        >
-                                          <Trash className="h-4 w-4" />
-                                        </Button>
-                                      )}
                                     </div>
                                   );
                                 })}
@@ -619,15 +719,31 @@ export default function CustomRecipePage() {
                   <div>Coffee: <span className="font-bold">{totalCoffee}g</span></div>
                   <div>Water: <span className="font-bold">{totalWater}g</span></div>
                   <div>Ratio: <span className="font-bold">1:{ratio}</span></div>
-                  <div>Pours: <span className="font-bold">{pours}</span></div>
-                  <div>Bloom Water: <span className="font-bold">{bloomWater}g</span></div>
-                  <div>
-                    {mode === "basic" ? (
-                      <>Water per Pour: <span className="font-bold">{waterPerPour}g</span></>
-                    ) : (
-                      <>Custom Steps: <span className="font-bold">{fields.length}</span></>
-                    )}
-                  </div>
+                  <div>Temperature: <span className="font-bold">
+                    {waterTemperature || 0}°{temperatureUnit} (
+                    {otherUnitTemp}°{temperatureUnit === "C" ? "F" : "C"})
+                  </span></div>
+                  
+                  {mode === "basic" ? (
+                    <>
+                      <div>Pours: <span className="font-bold">{pours}</span></div>
+                      <div>Bloom Water: <span className="font-bold">{bloomWater}g</span></div>
+                      <div>Water per Pour: <span className="font-bold">{waterPerPour}g</span></div>
+                      <div>Total Brew Time: <span className="font-bold">{watch("totalBrewTime") || "2:30"}</span></div>
+                    </>
+                  ) : (
+                    <>
+                      <div>Custom Steps: <span className="font-bold">{fields.length}</span></div>
+                      <div>Advanced Total: <span className="font-bold">{advancedTotalWater}g</span></div>
+                      <div className={`col-span-2 ${waterDifference === 0 ? "text-green-600" : "text-amber-600"}`}>
+                        {Math.abs(waterDifference) > 0 ? (
+                          <>{waterDifference > 0 ? "Remaining: " : "Excess: "}<span className="font-bold">{Math.abs(waterDifference)}g</span></>
+                        ) : (
+                          <>Water amounts match target ✓</>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               

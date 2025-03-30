@@ -1,6 +1,7 @@
 export type StepType = 'bloom' | 'pour' | 'drawdown';
 export type RecipeMode = 'basic' | 'advanced';
 export type InputMode = 'coffee' | 'water';
+export type TemperatureUnit = 'C' | 'F';
 
 export interface Step {
   id: string;
@@ -10,6 +11,7 @@ export interface Step {
   targetWeight: number; // Water to pour for this step in grams
   targetRatio: number; // Ratio of this step to coffee weight (for bloom) or to total water (for pours)
   instruction: string; // Text prompt for the user
+  description?: string; // Optional custom description for the step
 }
 
 export interface Recipe {
@@ -25,6 +27,8 @@ export interface Recipe {
   totalBrewTime: number; // Total brew time in seconds
   mode?: RecipeMode; // Basic or advanced pour step definition
   inputMode?: InputMode; // Coffee or water weight as primary input
+  waterTemperature?: number; // Water temperature in Celsius/Fahrenheit
+  temperatureUnit?: TemperatureUnit; // Unit for water temperature (C or F)
 }
 
 export interface CustomRecipeParams {
@@ -37,6 +41,8 @@ export interface CustomRecipeParams {
   inputMode?: InputMode; // Optional input mode (coffee or water)
   waterWeight?: number; // Optional water weight (used when inputMode is 'water')
   advancedSteps?: Step[]; // Optional advanced steps for advanced mode
+  waterTemperature?: number; // Optional water temperature
+  temperatureUnit?: TemperatureUnit; // Optional unit for water temperature
 }
 
 export interface CustomizationOptions {
